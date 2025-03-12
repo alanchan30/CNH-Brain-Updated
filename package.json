@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Full-stack app with FastAPI backend and Vite frontend",
   "scripts": {
-    "setup": "npm install && npm run setup:backend && npm run setup:frontend",
+    "setup": "npm run setup:backend && npm run setup:frontend",
     "setup:backend": "cd backend && pip install -r requirements.txt",
     "setup:frontend": "cd frontend && npm install",
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
