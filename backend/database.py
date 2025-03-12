@@ -1,7 +1,7 @@
 from typing import List
 from typing import Optional
 from sqlalchemy import ForeignKey
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float
 from sqlalchemy import func
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import Mapped, sessionmaker
@@ -46,13 +46,28 @@ class FMRI_History(Base):
     file_link: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(String(255))
     title: Mapped[str] = mapped_column(String(255))
+    gender: Mapped[str] = mapped_column(String(255))
+    age: Mapped[int] = mapped_column(Integer)
+    diagnosis: Mapped[str] = mapped_column(String(255))
 
 
+# This function is used for direct table creation without migrations
+# For schema changes, use Alembic migrations instead
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
 
-create_tables()
+# Only create tables directly if this file is run directly
+# When using migrations, this won't be executed
+if __name__ == "__main__":
+    create_tables()
+    print("Tables created directly (without migrations)")
+else:
+    print("Models loaded - use Alembic migrations for schema changes")
+
+# TO USE ALEMBIC:
+# alembic revision --autogenerate -m "Description of changes"
+# alembic upgrade head
 
 
 def get_db():
