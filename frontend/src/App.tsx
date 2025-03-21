@@ -1,14 +1,23 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './pages/Login'; 
+import { Routes, Route } from "react-router-dom";
+import Login from "./pages/Login";
 
-const App = () => {
+const Home = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    </Router>
+    <div>
+      <h1>CNH Brain - Home</h1>
+      <p>Welcome to the application. You are authenticated!</p>
+    </div>
   );
 };
 
-export default App
+const App = () => {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<Home />} />
+      {/* Add other routes here */}
+    </Routes>
+  );
+};
+
+export default App;
