@@ -26,6 +26,31 @@ export function LoginForm({
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSignUp, setIsSignUp] = useState<boolean>(false);
+
+  const handleSignUp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const response = await fetch(`${API_URL}/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Sign-up failed");
+      }
+      alert(data.message || "Check your email to complete sign-up!");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // Password-based login
   const handlePasswordLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -142,10 +167,12 @@ export function LoginForm({
       <div className={cn("flex flex-col", className)} {...props}>
         <Card>
           <CardHeader>
-            <CardTitle>Log In using Children's National Hospital Credentials</CardTitle>
+            <CardTitle>
+              {isSignUp? "Sign up with your email" : "Log In using Children's National Hospital Credentials"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handlePasswordLogin}>
+            <form onSubmit={isSignUp? handleSignUp: handlePasswordLogin}>
               <div className="flex flex-col gap-6">
                 <div className="grid gap-3">
                   <Label htmlFor="email">Username:</Label>
@@ -178,7 +205,7 @@ export function LoginForm({
                 
                 <div className="flex flex-col gap-3">
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Loading..." : "Login"}
+                    {loading ? "Loading..." : isSignUp ? "Sign up" : "Login"}
                   </Button>
                 </div>
               </div>
@@ -195,6 +222,17 @@ export function LoginForm({
             }}
           >
             Forgot your password?
+          </a>
+          <br></br>
+          <a 
+          href="#"
+          className="ml-auto inline-block text-sm underline underline-offset-4 hover:underline text-white"
+          onClick={(e) => { 
+            e.preventDefault();
+            setIsSignUp(!isSignUp);
+            setErrorMessage(null);
+          }}>
+            {isSignUp ? "Back to login" : "Sign up"}
           </a>
         </div>
       </div>
