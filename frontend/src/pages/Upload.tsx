@@ -1,7 +1,13 @@
+import Header from '@/components/ui/header'
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Upload() {
+  const navigate = useNavigate()
   return (
-    <div></div>
+    <>
+      <Header redirect={() => navigate("/upload")} />
+        <div>asnfdjhdskanf</div>
+    </>
   )
 }
