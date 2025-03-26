@@ -18,6 +18,9 @@ const AuthWrapper = () => {
   if (!isAuthenticated && window.location.pathname !== "/login") {
     return <Navigate to="/login" replace />;
   }
+  else {
+    return <Navigate to = "/dashboard" replace />;
+  }
 
   return <App />;
 };
