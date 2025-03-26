@@ -6,8 +6,8 @@ export default function Upload() {
   const navigate = useNavigate()
   return (
     <>
-      <Header redirect={() => navigate("/upload")} />
-        <div>asnfdjhdskanf</div>
+      <Header showButton redirect={() => navigate("/upload")} page="upload" />
+      <div>asnfdjhdskanf</div>
     </>
   )
 }
