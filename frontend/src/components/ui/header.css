@@ -1,0 +1,33 @@
+.header {
+  background-color: var(--blue);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 16px;
+  align-items: center;
+}
+
+.logo {
+  width: 64px;
+}
+
+button {
+  background-color: rgba(0,0,0,0);
+  border: none;
+  /* Dr. Humphery */
+  height: 32px;
+  padding: 0px;
+
+  font-family: 'Sharp Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-size: 24px;
+
+  color: #FFFFFF;
+  text-align: center;
+  /* Inside auto layout */
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+
+}
