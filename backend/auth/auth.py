@@ -106,11 +106,9 @@ async def logout(request: Request):
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")
 
-    token = auth_header.split(" ")[1]
-
     try:
-        # Sign out
-        supabase.auth.sign_out(token)
+        # Sign out without passing the token - the token isn't needed for Supabase's sign_out method
+        supabase.auth.sign_out()
         return {"message": "Successfully logged out"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
