@@ -3,9 +3,9 @@ import Header from '@/components/ui/header'
 
 const Redirect = () => {
   return (
-    <div>
+    <div className='w-screen h-screen bg-black'>
       <Header />
-      {/* TODO: rest of page */}
+      
     </div>
   )
 }
