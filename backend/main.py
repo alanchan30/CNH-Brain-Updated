@@ -1,40 +1,22 @@
-from backend.database import SessionLocal
 from fastapi import FastAPI, File, UploadFile, Form, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 import os
 import uuid
-from supabase import create_client, Client
-from backend.models import FMRIUpload
-from backend.schemas import FMRIUploadCreate
+import httpx 
+from database import SessionLocal, FMRI_History, get_db, User
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Retrieve Supabase credentials from environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
-# Validate that credentials are present
 if not SUPABASE_URL or not SUPABASE_ANON_KEY:
-    raise ValueError("Missing credentials from .env")
+    raise ValueError("Missing Supabase credentials")
 
-# Initialize Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-# Create FastAPI application instance
 app = FastAPI()
 
-# Database session dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Allow CORS for frontend development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -43,13 +25,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Simple health check endpoint
 @app.get("/api/hello")
 async def hello():
     return {"message": "Hello from FastAPI!"}
 
-# Endpoint for uploading fMRI files
-@app.post("/api/upload/")
+@app.post("/api/upload")
 async def upload_fmri(
     user_id: int = Form(...),
     title: str = Form(...),
@@ -61,37 +41,55 @@ async def upload_fmri(
     db: Session = Depends(get_db),
 ):
     try:
-        # Generate a unique filename for the uploaded file
+        # Verify user exists
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Generate a unique filename
         file_extension = file.filename.split('.')[-1]
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
         
-        # Upload file to Supabase storage
+        # Read file contents
         file_contents = await file.read()
-        supabase_response = supabase.storage.from_("fmri-uploads").upload(
-            file=file_contents,
-            path=unique_filename,
-            file_options={"content-type": file.content_type}
-        )
         
-        # Create database record for the upload
-        fmri_upload = FMRIUpload(
+        # Upload file to Supabase storage using httpx
+        async with httpx.AsyncClient() as client:
+            upload_response = await client.post(
+                f"{SUPABASE_URL}/storage/v1/object/fmri-uploads/{unique_filename}",
+                headers={
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+                    "Content-Type": file.content_type
+                },
+                content=file_contents
+            )
+            
+            # Check if upload was successful
+            if upload_response.status_code not in [200, 201]:
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Supabase upload failed: {upload_response.text}"
+                )
+        
+        # Create a database record for the fMRI upload
+        fmri_history = FMRI_History(
             user_id=user_id,
             title=title,
             description=description,
             gender=gender,
             age=age,
             diagnosis=diagnosis,
-            file_path=unique_filename
+            file_link=unique_filename 
         )
         
-        # Add and commit the record to the database
-        db.add(fmri_upload)
+        db.add(fmri_history)
         db.commit()
-        db.refresh(fmri_upload)
+        db.refresh(fmri_history)
         
         return {
             "message": "File uploaded successfully",
-            "file_id": fmri_upload.id,
+            "fmri_id": fmri_history.fmri_id,
             "file_path": unique_filename
         }
     
