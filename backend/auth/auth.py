@@ -28,6 +28,20 @@ class AuthResponse(BaseModel):
     user: Optional[dict] = None
     message: Optional[str] = None
 
+@router.post("/signup", response_model=AuthResponse)
+async def login(request: LoginRequest):
+    try:
+        auth_response = supabase.auth.sign_up({
+            "email": request.email,
+            "password": request.password
+        })
+        return {
+            "message": "Signup successful. Please check your email to confirm your account."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/login", response_model=AuthResponse)
 async def login(request: LoginRequest):
     try:
