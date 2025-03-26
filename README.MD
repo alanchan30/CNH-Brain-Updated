@@ -2,6 +2,19 @@
 
 This is a full-stack application using FastAPI for the backend and Vite for the frontend.
 
+## Tech Stack
+
+### Frontend
+- **React** with **TypeScript**
+- **Vite** for fast development and bundling
+- **Tailwind CSS** for styling
+- **Shadcn UI** components for consistent design
+- Authentication context with JWT token management
+
+### Backend
+- **FastAPI** for high-performance API development
+- **Supabase** for authentication and database
+
 ## Prerequisites
 
 - Node.js and npm
@@ -88,3 +101,4 @@ npm run serve
 ├── package.json     # Root package.json for project configuration
 └── README.md       # This file
 ```
+
