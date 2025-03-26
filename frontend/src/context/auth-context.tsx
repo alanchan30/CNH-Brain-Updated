@@ -1,8 +1,11 @@
-// AuthContext.tsx - Global authentication state
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-
-const API_URL = "/api"; // Adjust to match your API's location
-
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { API_URL } from "@/components/constants";
 interface User {
   id: string;
   email: string;
@@ -30,51 +33,53 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     // Check if user is authenticated on component mount
     const checkAuth = async () => {
-      const token = localStorage.getItem('access_token');
-      
+      const token = localStorage.getItem("access_token");
+
       if (!token) {
         setLoading(false);
         return;
       }
-      
+
       try {
-        const response = await fetch(`${API_URL}/me`, {
+        const response = await fetch(`${API_URL}api/me`, {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
-        
+
         if (!response.ok) {
-          throw new Error('Failed to authenticate');
+          throw new Error(`Failed to authenticate: ${response.status}`);
         }
-        
+
         const userData = await response.json();
-        setUser(userData);
+        setUser(userData.user || userData); // Handle different response formats
         setIsAuthenticated(true);
       } catch (error) {
+        console.error("Authentication check failed:", error);
         // Token is invalid or expired
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
       } finally {
         setLoading(false);
       }
     };
-    
+
     checkAuth();
   }, []);
 
   const signOut = async () => {
-    const token = localStorage.getItem('access_token');
-    
+    const token = localStorage.getItem("access_token");
+
     if (token) {
       try {
+        // Make sure we're using the correct endpoint
         const response = await fetch(`${API_URL}/logout`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
-        
+
         if (!response.ok) {
           console.error("Error during sign out:", await response.text());
         }
@@ -82,12 +87,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error("Error during sign out:", error);
       }
     }
-    
+
     // Clear local storage regardless of API response
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     setUser(null);
     setIsAuthenticated(false);
+
+    // Navigate to login page after logout
+    window.location.href = "/login";
   };
 
   return (
@@ -100,7 +108,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

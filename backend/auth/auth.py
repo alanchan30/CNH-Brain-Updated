@@ -12,21 +12,26 @@ router = APIRouter()
 
 # Initialize Supabase client
 supabase_url = os.environ.get("SUPABASE_URL")
-supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")  # Use service key for admin rights
+# Use service key for admin rights
+supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
 supabase: Client = create_client(supabase_url, supabase_key)
+
 
 class LoginRequest(BaseModel):
     email: str
     password: str
 
+
 class EmailRequest(BaseModel):
     email: str
+
 
 class AuthResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     user: Optional[dict] = None
     message: Optional[str] = None
+
 
 @router.post("/login", response_model=AuthResponse)
 async def login(request: LoginRequest):
@@ -36,7 +41,7 @@ async def login(request: LoginRequest):
             "email": request.email,
             "password": request.password
         })
-        
+
         return {
             "access_token": auth_response.session.access_token,
             "refresh_token": auth_response.session.refresh_token,
@@ -46,9 +51,10 @@ async def login(request: LoginRequest):
     except Exception as e:
         # Ensure we return a properly formatted error response
         raise HTTPException(
-            status_code=401, 
+            status_code=401,
             detail={"message": str(e), "error": "Authentication failed"}
         )
+
 
 @router.post("/magic-link", response_model=AuthResponse)
 async def send_magic_link(request: EmailRequest):
@@ -64,6 +70,7 @@ async def send_magic_link(request: EmailRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.post("/reset-password", response_model=AuthResponse)
 async def reset_password(request: EmailRequest):
     try:
@@ -77,6 +84,7 @@ async def reset_password(request: EmailRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/logout")
 async def logout(request: Request):
@@ -94,9 +102,9 @@ async def logout(request: Request):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.get("/me", response_model=dict)
 async def get_current_user(request: Request):
-    # Get the JWT token from the Authorization header
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")
@@ -105,7 +113,11 @@ async def get_current_user(request: Request):
 
     try:
         # Get user from token
-        user = supabase.auth.get_user(token)
-        return user.dict()
+        user_response = supabase.auth.get_user(token)
+        # Return a structured response that matches what the frontend expects
+        return {
+            "user": user_response.user.model_dump(),
+            "message": "User authenticated"
+        }
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
