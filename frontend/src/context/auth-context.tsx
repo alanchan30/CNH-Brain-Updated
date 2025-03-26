@@ -41,7 +41,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       try {
-        const response = await fetch(`${API_URL}api/me`, {
+        const response = await fetch(`${API_URL}/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
