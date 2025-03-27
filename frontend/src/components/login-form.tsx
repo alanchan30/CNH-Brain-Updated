@@ -3,7 +3,8 @@ import { FC, useState, FormEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
+  TopRoundedCard,
+  RoundedCard,
   CardContent,
   CardDescription,
   CardHeader,
@@ -12,8 +13,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { API_URL } from "@/components/constants";
-import { supabase } from "../../../backend/auth/supabaseClient";
+import { supabase } from "./supabaseClient";
 import { AuthResponse } from '@supabase/supabase-js';
+import { useNavigate } from "react-router-dom";
 
 interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
@@ -25,6 +27,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   const handleSignUp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -84,13 +87,38 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       // If response is ok, safely parse the JSON
       const data = await response.json();
 
-      // Store tokens and redirect
+      // Store tokens
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
 
-      // Use window.location.href for hard refresh or
-      // use the navigate function from react-router if available
-      window.location.href = "/dashboard";
+      // Set up Supabase session
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token
+      });
+
+      if (sessionError) {
+        throw new Error("Failed to set up authentication session");
+      }
+
+      // Check MFA status
+      const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalError) throw aalError;
+
+      // Check if user has MFA factors
+      const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+      if (factorsError) throw factorsError;
+
+      const hasMFAEnrolled = factorsData.totp && factorsData.totp.length > 0;
+      const isAAL2 = aalData.currentLevel === 'aal2';
+
+      // Redirect based on MFA status
+      if (!hasMFAEnrolled || !isAAL2) {
+        navigate("/mfa");
+      } else {
+        navigate("/dashboard");
+      }
+
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "An unexpected error occurred"
@@ -144,11 +172,11 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       />
       <h1 className="font-bold mb-10">Welcome to Brain Visualizer</h1>
       <div className={cn("flex flex-col", className)} {...props}>
-        <Card>
+        <TopRoundedCard>
           <CardHeader>
             <CardTitle>
               {isSignUp
-                ? "Sign up with your email"
+                ? "Sign up using your email and password to get started"
                 : "Log In using Children's National Hospital Credentials"}
             </CardTitle>
           </CardHeader>
@@ -192,7 +220,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               </div>
             </form>
           </CardContent>
-        </Card>
+        </TopRoundedCard>
         <div className="text-center text-sm bg-[#0177CD] p-2 rounded-b-xl shadow-2xl">
           <a
             href="#"

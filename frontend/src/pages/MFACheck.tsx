@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../../backend/auth/supabaseClient';
+import { supabase } from '../components/supabaseClient';
 import { AuthMFA, EnrollMFA } from '../components/MFA';
 import Dashboard from './Dashboard';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/auth-context';
 
 const MFACheck = () => {
   const [readyToShow, setReadyToShow] = useState(true); // Always true as per requirement
   const [isMFARegistered, setIsMFARegistered] = useState(false);
   const [isMFAVerified, setIsMFAVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { refreshAuthState } = useAuth();
 
   useEffect(() => {
     const checkMFAStatus = async () => {
@@ -30,12 +34,38 @@ const MFACheck = () => {
     checkMFAStatus();
   }, []);
 
-  const handleMFAEnrolled = () => {
+  const handleMFAEnrolled = async () => {
+    console.log("MFA enrolled, handling enrollment completion");
     setIsMFARegistered(true);
+    
+    try {
+      // Refresh auth state to ensure token synchronization
+      await refreshAuthState();
+      
+      // Then navigate to dashboard after enrollment
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error refreshing auth state after MFA enrollment:", error);
+      // Still attempt to navigate to dashboard
+      navigate("/dashboard");
+    }
   };
 
-  const handleMFAVerified = () => {
+  const handleMFAVerified = async () => {
+    console.log("MFA verified, handling verification completion");
     setIsMFAVerified(true);
+    
+    try {
+      // Refresh auth state to ensure token synchronization
+      await refreshAuthState();
+      
+      // Then navigate to dashboard after verification
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error refreshing auth state after MFA verification:", error);
+      // Still attempt to navigate to dashboard
+      navigate("/dashboard");
+    }
   };
 
   if (isLoading) {
@@ -51,8 +81,8 @@ const MFACheck = () => {
       return (
         <div className="flex justify-center items-center min-h-screen">
           <div className="p-6 bg-white rounded shadow-md w-96">
-            <h2 className="text-xl font-bold mb-4">Two-Factor Authentication</h2>
-            <AuthMFA onVerified={handleMFAVerified} />
+            <h2 className="text-xl font-bold mb-4">Complete Two-Factor Authentication</h2>
+            <AuthMFA onVerificationComplete={handleMFAVerified} />
           </div>
         </div>
       );
@@ -65,7 +95,7 @@ const MFACheck = () => {
           <p className="mb-4">For security purposes, you need to set up two-factor authentication.</p>
           <EnrollMFA 
             onEnrolled={handleMFAEnrolled} 
-            onCancelled={() => alert("MFA setup is required to use the application")} 
+            onCancelled={() => {/* Handle cancellation - possibly log out */}} 
           />
         </div>
       </div>

@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+function TopRoundedCard({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
@@ -14,6 +14,21 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     />
   )
 }
+
+function RoundedCard({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card"
+      className={cn( 
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 px-2 shadow-2xl ",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+
 
 function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -65,4 +80,4 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+export { TopRoundedCard, RoundedCard, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
