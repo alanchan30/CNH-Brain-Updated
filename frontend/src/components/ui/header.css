@@ -16,8 +16,8 @@
   cursor: pointer;
 }
 
-button {
-  background-color: rgba(0,0,0,0);
+.header-button {
+  background-color: rgba(0, 0, 0, 0);
   border: none;
   /* Dr. Humphery */
   height: 32px;
@@ -57,6 +57,7 @@ button {
   align-items: center;
   justify-content: center;
 }
+
 .unshaded {
   width: 170px;
   cursor: pointer;

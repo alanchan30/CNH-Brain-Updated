@@ -1,0 +1,41 @@
+'use client';
+
+import { useDropzone } from 'react-dropzone';
+import { useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { UploadCloud } from 'lucide-react';
+
+export default function FileUpload() {
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        console.log('Dropped files:', acceptedFiles);
+    }, []);
+
+    const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+        onDrop,
+        multiple: false,
+        noClick: true,
+        noKeyboard: true,
+    });
+
+    return (
+        <Card className="border-none rounded-2xl shadow-2xl p-24 text-center transition hover:shadow-lg">
+            <CardContent
+                {...getRootProps()}
+                className="flex flex-col items-center space-y-4"
+            >
+                <input {...getInputProps()} />
+                <UploadCloud className="text-blue-500" size={48} />
+                <p className="text-lg font-bold">
+                    {isDragActive ? 'Drop the file here...' : 'Drag and drop or choose file:'}
+                </p>
+                <button
+                    type="button"
+                    onClick={open}
+                    className="blue-button "
+                >
+                    choose file
+                </button>
+            </CardContent>
+        </Card>
+    );
+}
