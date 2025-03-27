@@ -8,6 +8,12 @@ import { AuthProvider, useAuth } from "./context/auth-context";
 import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 
+
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import AppWithMFA from './components/AppWithMFA'
+import './index.css' // Adjust based on your styling approach
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -40,7 +46,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>

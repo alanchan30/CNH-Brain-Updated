@@ -1,5 +1,5 @@
 // LoginForm.tsx - This replaces your current login form component
-import { useState, FormEvent } from "react";
+import { FC, useState, FormEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { API_URL } from "@/components/constants";
+import { supabase } from "../../../backend/auth/supabaseClient";
+import { AuthResponse } from '@supabase/supabase-js';
 
 interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
