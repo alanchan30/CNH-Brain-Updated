@@ -183,7 +183,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                 )}
 
                 <div className="flex flex-col gap-3">
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full red-login" disabled={loading}>
                     {loading ? "Loading..." : isSignUp ? "Sign up" : "Login"}
                   </Button>
                 </div>

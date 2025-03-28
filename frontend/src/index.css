@@ -109,6 +109,9 @@ h1 {
   font-weight: bold;
   color: var(--white);
 }
+.red-login {
+  background-color: var(--red);
+}
 
 button:hover {
   border-color: black;
