@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { API_URL } from "@/components/constants";
 import { supabase } from "./supabaseClient";
-import { AuthResponse } from '@supabase/supabase-js';
+import { AuthResponse } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 
 interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -35,10 +35,10 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     setErrorMessage(null);
     try {
       const response = await fetch(`${API_URL}/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-      })
+      });
 
       const data = await response.json();
 
@@ -94,7 +94,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       // Set up Supabase session
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: data.access_token,
-        refresh_token: data.refresh_token
+        refresh_token: data.refresh_token,
       });
 
       if (sessionError) {
@@ -102,15 +102,17 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       }
 
       // Check MFA status
-      const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { data: aalData, error: aalError } =
+        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aalError) throw aalError;
 
       // Check if user has MFA factors
-      const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+      const { data: factorsData, error: factorsError } =
+        await supabase.auth.mfa.listFactors();
       if (factorsError) throw factorsError;
 
       const hasMFAEnrolled = factorsData.totp && factorsData.totp.length > 0;
-      const isAAL2 = aalData.currentLevel === 'aal2';
+      const isAAL2 = aalData.currentLevel === "aal2";
 
       // Redirect based on MFA status
       if (!hasMFAEnrolled || !isAAL2) {
@@ -118,7 +120,6 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       } else {
         navigate("/dashboard");
       }
-
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "An unexpected error occurred"
@@ -171,10 +172,13 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         className="fixed top-0 left-0 p-4 w-48"
       />
       <h1 className="font-bold mb-10">Welcome to Brain Visualizer</h1>
-      <div className={cn("flex flex-col", className)} {...props}>
-        <TopRoundedCard>
+      <div
+        className={cn("flex flex-col w-full max-w-2xl mx-auto px-4", className)}
+        {...props}
+      >
+        <TopRoundedCard className="w-full">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-xl">
               {isSignUp
                 ? "Sign up using your email and password to get started"
                 : "Log In using Children's National Hospital Credentials"}
@@ -184,7 +188,9 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             <form onSubmit={isSignUp ? handleSignUp : handlePasswordLogin}>
               <div className="flex flex-col gap-6">
                 <div className="grid gap-3">
-                  <Label htmlFor="email">Username:</Label>
+                  <Label htmlFor="email" className="text-base">
+                    Username:
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -192,11 +198,14 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    className="h-12 text-base"
                   />
                 </div>
                 <div className="grid gap-3">
                   <div className="flex items-center">
-                    <Label htmlFor="password">Password:</Label>
+                    <Label htmlFor="password" className="text-base">
+                      Password:
+                    </Label>
                   </div>
                   <Input
                     id="password"
@@ -205,6 +214,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                     placeholder="************"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 text-base"
                   />
                 </div>
 
@@ -213,7 +223,11 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                 )}
 
                 <div className="flex flex-col gap-3">
-                  <Button type="submit" className="w-full red-login" disabled={loading}>
+                  <Button
+                    type="submit"
+                    className="w-full red-login h-12 text-base"
+                    disabled={loading}
+                  >
                     {loading ? "Loading..." : isSignUp ? "Sign up" : "Login"}
                   </Button>
                 </div>
@@ -221,7 +235,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             </form>
           </CardContent>
         </TopRoundedCard>
-        <div className="text-center text-sm bg-[#0177CD] p-2 rounded-b-xl shadow-2xl">
+        <div className="text-center text-sm bg-[#0177CD] p-4 rounded-b-xl shadow-2xl">
           <a
             href="#"
             className="ml-auto inline-block text-sm underline underline-offset-4 hover:underline text-white"
