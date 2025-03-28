@@ -11,9 +11,9 @@ load_dotenv()
 router = APIRouter()
 
 # Initialize Supabase client
-supabase_url = os.environ.get("VITE_SUPABASE_URL")
+supabase_url = os.environ.get("SUPABASE_URL")
 # Use service key for admin rights
-supabase_key = os.environ.get("VITE_SUPABASE_SERVICE_KEY")
+supabase_key = os.environ.get("SUPABASE_ANON_KEY")
 supabase: Client = create_client(supabase_url, supabase_key)
 
 
@@ -31,6 +31,7 @@ class AuthResponse(BaseModel):
     refresh_token: Optional[str] = None
     user: Optional[dict] = None
     message: Optional[str] = None
+
 
 @router.post("/signup", response_model=AuthResponse)
 async def login(request: LoginRequest):
