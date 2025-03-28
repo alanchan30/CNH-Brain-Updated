@@ -10,13 +10,13 @@ export default function Upload() {
   }
 
   return (
-    <>
+    <div className='h-screen flex flex-col'>
       <Header showButton redirect={() => navigate("/upload")} page="upload" />
 
-      <div className="flex flex-col h-screen p-8">
-        <div>
-          <h2 className="text-2xl font-bold">Upload Brain Image</h2>
-          <p className="text-black-600 font-semibold">description of image etc</p>
+      <div className="flex flex-col h-full p-8">
+        <div className='flex flex-col space-y-2'>
+          <h2 className="md:text-5xl text-2xl font-bold">Upload Brain Image</h2>
+          <p className="md:text-2xl text-md text-black-600 font-semibold">description of image etc</p>
         </div>
 
         <div className="flex flex-grow justify-center items-center">
@@ -27,12 +27,12 @@ export default function Upload() {
           <button
             onClick={handleNext}
             // className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition"
-            className="p-16"
+            className="red-button"
           >
             Next
           </button>
         </div>
       </div>
-    </>
+    </div>
   )
 }

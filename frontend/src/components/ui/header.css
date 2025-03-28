@@ -1,3 +1,14 @@
+:root {
+  --header-text: 24px;
+  --header-button-w: 170px;
+  --logo-size: 64px;
+  @media (min-width: 400px) {
+    --header-text: 12px;
+    --header-button-w: 100px;
+    --logo-size: 32px;
+  }
+}
+
 .header {
   background-color: var(--blue);
   display: flex;
@@ -8,7 +19,7 @@
 }
 
 .logo {
-  width: 64px;
+  width: var(--logo-size);
   margin: 20px;
 }
 
@@ -26,7 +37,7 @@
   font-family: 'Sharp Sans';
   font-style: normal;
   font-weight: 700;
-  font-size: 24px;
+  font-size: var(--header-text);
 
   color: #FFFFFF;
   text-align: center;
@@ -45,11 +56,11 @@
 }
 
 .shaded {
-  width: 170px;
+  width: var(--header-button-w);
   cursor: pointer;
   background-color: #00000033;
   text-align: center;
-  font-size: 26px;
+  font-size: var(--header-text);
   font-weight: bold;
   color: var(--white);
   display: flex;
@@ -59,10 +70,10 @@
 }
 
 .unshaded {
-  width: 170px;
+  width: var(--header-button-w);
   cursor: pointer;
   text-align: center;
-  font-size: 26px;
+  font-size: var(--header-text);
   font-weight: bold;
   color: var(--white);
   display: flex;

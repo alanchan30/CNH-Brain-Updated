@@ -18,14 +18,14 @@ export default function FileUpload() {
     });
 
     return (
-        <Card className="border-none rounded-2xl shadow-2xl p-24 text-center transition hover:shadow-lg">
+        <Card className="border-none rounded-2xl shadow-2xl md:p-16 md:px-48 text-center transition hover:shadow-lg">
             <CardContent
                 {...getRootProps()}
                 className="flex flex-col items-center space-y-4"
             >
                 <input {...getInputProps()} />
-                <UploadCloud className="text-blue-500" size={48} />
-                <p className="text-lg font-bold">
+                <UploadCloud className="text-blue-500 w-32 h-32" size={48} />
+                <p className="text-2xl font-bold w-42">
                     {isDragActive ? 'Drop the file here...' : 'Drag and drop or choose file:'}
                 </p>
                 <button
