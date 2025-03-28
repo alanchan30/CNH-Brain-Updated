@@ -25,6 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+ALLOWED_EXTENSIONS = {"nii", "nii.gz", "dcm"}
+ALLOWED_MIME_TYPES = {
+    "application/gzip",        
+    "application/octet-stream",
+    "application/dicom",       
+    "image/dicom"              
+}
+
 @app.get("/api/hello")
 async def hello():
     return {"message": "Hello from FastAPI!"}
@@ -41,17 +49,38 @@ async def upload_fmri(
     db: Session = Depends(get_db),
 ):
     try:
-        # Verify user exists
-        user = db.query(User).filter(User.user_id == user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        # # Verify user exists
+        # user = db.query(User).filter(User.user_id == user_id).first()
+        # if not user:
+        #     raise HTTPException(status_code=404, detail="User not found")
 
         # Generate a unique filename
-        file_extension = file.filename.split('.')[-1]
-        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_extension = file.filename.split('.', 1)[1:]
+        mime_type = file.content_type
         
+        
+        print(f"File name: {file.filename}")
+        print(f"Detected extension: {file_extension}")
+        print(f"Detected MIME type: {mime_type}")
+        print(f"Allowed extensions: {ALLOWED_EXTENSIONS}")
+        print(f"Allowed MIME types: {ALLOWED_MIME_TYPES}")
+        if file_extension not in ALLOWED_EXTENSIONS or mime_type not in ALLOWED_MIME_TYPES:
+            print("hi3")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+            )
+        
+        
+        try:
+            unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e) + "asjda")
+        
+        print(unique_filename)
         # Read file contents
         file_contents = await file.read()
+        
         
         # Upload file to Supabase storage using httpx
         async with httpx.AsyncClient() as client:
