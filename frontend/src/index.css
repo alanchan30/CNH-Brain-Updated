@@ -17,11 +17,14 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
   --red: #E3002B;
   --yellow: #FFB601;
   --blue: #0177CD;
   --white: #FFFEFA;
   --black: #000000;
+
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -38,7 +41,7 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922  0);
+  --border: oklch(0.922 0);
   --input: white;
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
@@ -62,6 +65,7 @@ a {
   color: white;
   /* text-decoration: inherit; */
 }
+
 a:hover {
   color: black;
 }
@@ -79,20 +83,37 @@ h1 {
   line-height: 1.1;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
+
+
+.blue-button {
+  border: 0px;
+  padding: 0px;
+  border-radius: 10px;
+  width: 340px;
+  height: 56px;
+  font-size: 24px;
+  font-weight: bold;
   font-family: inherit;
-  background-color: #E3002B;
+  background-color: var(--blue);
+  color: white;
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
+.red-button {
+  width: 160px;
+  height: 60px;
+  background-color: var(--red);
+  border-radius: 10px;
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--white);
+}
+
 button:hover {
   border-color: black;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -103,9 +124,11 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
+
   a:hover {
     color: #747bff;
   }
+
   button {
     background-color: #f9f9f9;
   }
@@ -189,6 +212,7 @@ button:focus-visible {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
