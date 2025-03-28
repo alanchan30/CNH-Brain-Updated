@@ -7,6 +7,7 @@ import {
 import { AuthProvider, useAuth } from "./context/auth-context";
 import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import LandingPage from "./pages/LandingPage";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -32,6 +33,7 @@ const App = () => {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route
             path="/dashboard"
             element={
