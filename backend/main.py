@@ -71,6 +71,12 @@ async def upload_fmri(
         # Read file contents
         file_contents = await file.read()
         
+
+        compressed_buffer = BytesIO()
+        with gzip.GzipFile(fileobj=compressed_buffer, mode="wb") as gz:
+            gz.write(original_data)
+        compressed_data = compressed_buffer.getvalue()
+
         # Upload file to Supabase storage using httpx
         async with httpx.AsyncClient() as client:
             upload_response = await client.post(
@@ -80,7 +86,7 @@ async def upload_fmri(
                     "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
                     "Content-Type": file.content_type
                 },
-                content=file_contents
+                content=compressed_data
             )
             
             # Check if upload was successful
