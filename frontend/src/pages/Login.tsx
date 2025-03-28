@@ -1,18 +1,9 @@
 import { useAuth } from "../context/auth-context";
 import { LoginForm } from "../components/login-form";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 
 const LoginPage = () => {
-  const { isAuthenticated, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // If already authenticated, redirect to dashboard
-    if (!loading && isAuthenticated) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, loading, navigate]);
+  const { loading } = useAuth();
 
   // While checking authentication, show loading
   if (loading) {
@@ -23,7 +14,7 @@ const LoginPage = () => {
     );
   }
 
-  // If not authenticated, show login form
+  // Always show login form
   return (
     <div className="h-screen flex items-center justify-center">
       <LoginForm />

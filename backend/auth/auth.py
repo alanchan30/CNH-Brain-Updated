@@ -13,7 +13,7 @@ router = APIRouter()
 # Initialize Supabase client
 supabase_url = os.environ.get("SUPABASE_URL")
 # Use service key for admin rights
-supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
+supabase_key = os.environ.get("SUPABASE_ANON_KEY")
 supabase: Client = create_client(supabase_url, supabase_key)
 
 
@@ -31,6 +31,20 @@ class AuthResponse(BaseModel):
     refresh_token: Optional[str] = None
     user: Optional[dict] = None
     message: Optional[str] = None
+
+
+@router.post("/signup", response_model=AuthResponse)
+async def login(request: LoginRequest):
+    try:
+        auth_response = supabase.auth.sign_up({
+            "email": request.email,
+            "password": request.password
+        })
+        return {
+            "message": "Signup successful. Please check your email to confirm your account."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -93,11 +107,9 @@ async def logout(request: Request):
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")
 
-    token = auth_header.split(" ")[1]
-
     try:
-        # Sign out
-        supabase.auth.sign_out(token)
+        # Sign out without passing the token - the token isn't needed for Supabase's sign_out method
+        supabase.auth.sign_out()
         return {"message": "Successfully logged out"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

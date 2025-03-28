@@ -6,6 +6,8 @@ import {
   ReactNode,
 } from "react";
 import { API_URL } from "@/components/constants";
+import { supabase } from "@/components/supabaseClient";
+
 interface User {
   id: string;
   email: string;
@@ -17,6 +19,8 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  requiresMFA: boolean;
+  refreshAuthState: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,42 +33,91 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [requiresMFA, setRequiresMFA] = useState<boolean>(false);
+
+  // Function to check auth state that can be reused
+  const checkAuthState = async () => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      setIsAuthenticated(false);
+      setRequiresMFA(false);
+      return;
+    }
+
+    try {
+      // First check if the token is valid
+      const response = await fetch(`${API_URL}/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to authenticate: ${response.status}`);
+      }
+
+      const userData = await response.json();
+      setUser(userData.user || userData);
+      setIsAuthenticated(true);
+
+      // Then check MFA status
+      const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalError) throw aalError;
+
+      // Check if user has MFA factors
+      const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+      if (factorsError) throw factorsError;
+
+      const hasMFAEnrolled = factorsData.totp && factorsData.totp.length > 0;
+      const isAAL2 = aalData.currentLevel === 'aal2';
+
+      // Require MFA if not enrolled or not at AAL2 level
+      const needsMFA = !hasMFAEnrolled || !isAAL2;
+      setRequiresMFA(needsMFA);
+      
+      console.log('Auth state refreshed:', { 
+        isAuthenticated: true, 
+        requiresMFA: needsMFA,
+        authLevel: aalData.currentLevel
+      });
+      
+      return { isAuthenticated: true, requiresMFA: needsMFA };
+
+    } catch (error) {
+      console.error("Authentication check failed:", error);
+      // Token is invalid or expired
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      setIsAuthenticated(false);
+      setRequiresMFA(false);
+      
+      return { isAuthenticated: false, requiresMFA: false };
+    }
+  };
+
+  // Public function to refresh auth state (e.g. after MFA verification)
+  const refreshAuthState = async () => {
+    setLoading(true);
+    try {
+      await checkAuthState();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check if user is authenticated on component mount
-    const checkAuth = async () => {
-      const token = localStorage.getItem("access_token");
-
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
+    const initialAuthCheck = async () => {
+      setLoading(true);
       try {
-        const response = await fetch(`${API_URL}/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to authenticate: ${response.status}`);
-        }
-
-        const userData = await response.json();
-        setUser(userData.user || userData); // Handle different response formats
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error("Authentication check failed:", error);
-        // Token is invalid or expired
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
+        await checkAuthState();
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
+    initialAuthCheck();
   }, []);
 
   const signOut = async () => {
@@ -77,6 +130,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
           },
         });
 
@@ -99,7 +153,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut, isAuthenticated }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      signOut, 
+      isAuthenticated, 
+      requiresMFA,
+      refreshAuthState 
+    }}>
       {children}
     </AuthContext.Provider>
   );

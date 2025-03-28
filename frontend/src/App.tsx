@@ -7,10 +7,19 @@ import {
 import { AuthProvider, useAuth } from "./context/auth-context";
 import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import MFACheck from "./pages/MFACheck";
+
+// ... other imports
 import Upload from "./pages/Upload";
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, loading } = useAuth();
+const ProtectedRoute = ({
+  children,
+  requireMFA = true,
+}: {
+  children: React.ReactNode;
+  requireMFA?: boolean;
+}) => {
+  const { isAuthenticated, loading, requiresMFA } = useAuth(); // Now requiresMFA is defined in context
 
   if (loading) {
     return (
@@ -24,6 +33,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Only redirect if MFA is required by both the route and the user's status
+  // Check current path to prevent infinite redirects
+  if (requireMFA && requiresMFA && window.location.pathname !== "/mfa") {
+    return <Navigate to="/mfa" replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -33,6 +48,7 @@ const App = () => {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/mfa" element={<MFACheck />} />
           <Route
             path="/dashboard"
             element={
@@ -54,6 +70,27 @@ const App = () => {
       </Router>
     </AuthProvider>
   );
+};
+
+const AuthCheck = ({
+  children,
+  requireFullAuth = true,
+}: {
+  children: React.ReactNode;
+  requireFullAuth?: boolean;
+}) => {
+  const { isAuthenticated } = useAuth();
+  const hasToken = !!localStorage.getItem("access_token");
+
+  if (!hasToken) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requireFullAuth && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 export default App;
