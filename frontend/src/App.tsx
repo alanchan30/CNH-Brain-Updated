@@ -7,6 +7,7 @@ import {
 import { AuthProvider, useAuth } from "./context/auth-context";
 import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Upload from "./pages/Upload";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -40,7 +41,14 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute>
+                <Upload />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
