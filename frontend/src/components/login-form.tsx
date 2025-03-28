@@ -34,6 +34,26 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     setLoading(true);
     setErrorMessage(null);
     try {
+      // First check if email exists
+      const checkResponse = await fetch(`${API_URL}/check-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const checkData = await checkResponse.json();
+
+      if (!checkResponse.ok) {
+        throw new Error(checkData.message || "Failed to check email");
+      }
+
+      if (checkData.exists) {
+        setErrorMessage(checkData.message);
+        setLoading(false);
+        return;
+      }
+
+      // If email doesn't exist, proceed with signup
       const response = await fetch(`${API_URL}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,7 +65,8 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       if (!response.ok) {
         throw new Error(data.detail || "Sign-up failed");
       }
-      alert(data.message || "Check your email to complete sign-up!");
+      
+      setErrorMessage("Check your email to complete sign up");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "An unexpected error occurred"
@@ -79,8 +100,11 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             errorData.detail?.message || errorData.detail || "Login failed"
           );
         } catch (jsonError) {
-          // If JSON parsing fails, use the status text
-          throw new Error(`Login failed: ${response.statusText}`);
+          if (response.statusText.includes("Unauthorized")) {
+            throw new Error("Invalid credentials or account not verified");
+          } else {
+            throw new Error(`Login failed: ${response.statusText}`);
+          }
         }
       }
 
@@ -154,7 +178,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         throw new Error(data.detail || "Failed to send reset email");
       }
 
-      alert(data.message || "Check your email for the password reset link!");
+      //alert(data.message || "Check your email for the password reset link!");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "An unexpected error occurred"

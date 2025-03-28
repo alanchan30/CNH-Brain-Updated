@@ -542,7 +542,7 @@ export function AuthMFA({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-3">
-          {error && !error.includes("friendly name") && (
+          {error && !error.includes("friendly name") && !error.includes("Code needs to be non-empty") && (
             <div className="text-red-500 text-sm text-center">{error}</div>
           )}
 
@@ -553,6 +553,13 @@ export function AuthMFA({
               <p>
                 Try refreshing the page or opening in a private/incognito
                 window.
+              </p>
+            </div>
+          )}
+          {error && error.includes("Code needs to be non-empty") && (
+            <div className="text-amber-600 text-sm text-center p-2 bg-amber-50 rounded-md border border-amber-100">
+              <p>
+                Please enter a valid code from your authenticator app.
               </p>
             </div>
           )}
@@ -584,7 +591,6 @@ export function AuthMFA({
             </Button>
             <Button
               onClick={handleCancel}
-              variant="outline"
               className="w-full h-12 text-base red-login text-white"
               disabled={isVerifying}
             >
