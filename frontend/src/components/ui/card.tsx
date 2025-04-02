@@ -7,7 +7,7 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm",
         className
       )}
       {...props}
@@ -86,7 +86,7 @@ function TopRoundedCard({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-t-xl border py-6 px-2 shadow-2xl ",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-t-xl py-6 px-2 shadow-2xl ",
         className
       )}
       {...props}
@@ -99,7 +99,7 @@ function RoundedCard({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 px-2 shadow-2xl ",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 px-2 shadow-2xl ",
         className
       )}
       {...props}

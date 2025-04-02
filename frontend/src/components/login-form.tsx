@@ -195,7 +195,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         alt="Logo"
         className="fixed top-0 left-0 p-4 w-48"
       />
-      <h1 className="font-bold mb-10">Welcome to Brain Visualizer</h1>
+      <h1 className="font-bold m-4 mb-10">Welcome to Brain Visualizer</h1>
       <div
         className={cn("flex flex-col w-full max-w-2xl mx-auto px-4", className)}
         {...props}
