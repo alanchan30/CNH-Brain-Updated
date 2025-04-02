@@ -73,7 +73,7 @@ async def upload_fmri(
     try:
         # # Verify user exists
         # user = db.query(User).filter(User.user_id == user_id).first()
-        # if not user:
+        # if not user:       
         #     raise HTTPException(status_code=404, detail="User not found")
 
         file_extension = file.filename.split('.', 1)[1]
