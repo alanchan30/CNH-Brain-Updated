@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import os
 import uuid
 import httpx 
+import gzip
+from io import BytesIO
 from database import SessionLocal, FMRI_History, get_db, User
 
 load_dotenv()
@@ -71,12 +73,13 @@ async def upload_fmri(
         # Read file contents
         file_contents = await file.read()
         
+        print(f"original: {len(file_contents)/1024:.2f}")
 
         compressed_buffer = BytesIO()
         with gzip.GzipFile(fileobj=compressed_buffer, mode="wb") as gz:
-            gz.write(original_data)
+            gz.write(file_contents)
         compressed_data = compressed_buffer.getvalue()
-
+        print(f"adsf: {len(compressed_data)/1024:.2f}")
         # Upload file to Supabase storage using httpx
         async with httpx.AsyncClient() as client:
             upload_response = await client.post(
