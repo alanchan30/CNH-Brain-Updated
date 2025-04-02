@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./context/auth-context";
 import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import MFACheck from "./pages/MFACheck";
+import LandingPage from "./pages/LandingPage";
 
 // ... other imports
 import Upload from "./pages/Upload";
@@ -49,6 +50,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/mfa" element={<MFACheck />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route
             path="/dashboard"
             element={
