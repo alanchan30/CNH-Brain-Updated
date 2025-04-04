@@ -42,9 +42,9 @@ const LandingPage = () => {
 
       {/* Main Content */}
       <div className="flex flex-col items-center justify-center flex-grow text-center p-6">
-        <h1 className="text-4xl font-bold">
+        <div className="text-2xl md:text-4xl font-bold">
           Hello, {user?.email?.split("@")[0] || "User"}!
-        </h1>
+        </div>
         <p className="text-black-600 mt-2">
           Upload a file to initiate a new brain scan or access history for
           previous scans.

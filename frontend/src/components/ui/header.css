@@ -1,11 +1,15 @@
 :root {
   --header-text: 24px;
   --header-button-w: 170px;
+  --header-padding: 8px 16px;
   --logo-size: 64px;
-  @media (min-width: 400px) {
+  --account-text: 12px;
+  @media (max-width: 500px) {
     --header-text: 12px;
     --header-button-w: 100px;
     --logo-size: 32px;
+    --header-padding: 4px 4px;
+    --account-text: 8px;
   }
 }
 
@@ -37,13 +41,13 @@
   background-color: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
-  padding: 8px 16px;
+  padding: var(--header-padding);
   height: auto;
   min-width: 150px;
   font-family: "Sharp Sans", system-ui, sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--account-text);
   color: #ffffff;
   text-align: center;
   transition: all 0.2s;

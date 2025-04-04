@@ -9,7 +9,7 @@ import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import MFACheck from "./pages/MFACheck";
 import LandingPage from "./pages/LandingPage";
-import History from "./pages/history";
+import History from "./pages/HistoryPage";
 import Upload from "./pages/Upload";
 
 const ProtectedRoute = ({
