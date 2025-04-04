@@ -65,7 +65,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       if (!response.ok) {
         throw new Error(data.detail || "Sign-up failed");
       }
-      
+
       setErrorMessage("Check your email to complete sign up");
     } catch (error) {
       setErrorMessage(
@@ -142,7 +142,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       if (!hasMFAEnrolled || !isAAL2) {
         navigate("/mfa");
       } else {
-        navigate("/dashboard");
+        navigate("/landing");
       }
     } catch (error) {
       setErrorMessage(

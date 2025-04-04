@@ -9,8 +9,7 @@ import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import MFACheck from "./pages/MFACheck";
 import LandingPage from "./pages/LandingPage";
-
-// ... other imports
+import History from "./pages/history";
 import Upload from "./pages/Upload";
 
 const ProtectedRoute = ({
@@ -50,12 +49,11 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/mfa" element={<MFACheck />} />
-          <Route path="/landing" element={<LandingPage />} />
           <Route
-            path="/dashboard"
+            path="/landing"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <LandingPage />
               </ProtectedRoute>
             }
           />
@@ -67,7 +65,15 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <History />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<Navigate to="/landing" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

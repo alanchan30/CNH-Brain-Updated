@@ -1,22 +1,23 @@
-import FileUpload from '@/components/ui/FileUpload'
-import Header from '@/components/ui/header'
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import FileUpload from "@/components/ui/FileUpload";
+import Header from "@/components/ui/header";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Upload() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const handleNext = () => {
-    console.log('Next button clicked');
-  }
+    console.log("Next button clicked");
+  };
 
   return (
-    <div className='h-screen flex flex-col'>
+    <div className="h-screen flex flex-col">
       <Header showButton redirect={() => navigate("/upload")} page="upload" />
 
       <div className="flex flex-col h-full p-8">
-        <div className='flex flex-col space-y-2'>
+        <div className="flex flex-col space-y-2">
           <h2 className="md:text-5xl text-2xl font-bold">Upload Brain Image</h2>
-          <p className="md:text-2xl text-md text-black-600 font-semibold">description of image etc</p>
+          {/* NOTE TO MIGUEL, add these extra parts */}
+          {/* <p className="md:text-2xl text-md text-black-600 font-semibold">description of image etc</p> */}
         </div>
 
         <div className="flex flex-grow justify-center items-center">
@@ -34,5 +35,5 @@ export default function Upload() {
         </div>
       </div>
     </div>
-  )
+  );
 }
