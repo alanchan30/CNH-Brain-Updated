@@ -1,8 +1,18 @@
+import Header from "@/components/ui/header";
+import History from "@/components/ui/history";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-const History = () => {
+const HistoryPage = () => {
   const navigate = useNavigate();
+
+  return(
+    <div className="h-screen flex flex-col">
+      <Header page="history" showButton redirect={() => navigate('/landing')} />
+      <History />
+    </div>
+
+  )
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">
       <div className="text-center">
@@ -23,4 +33,4 @@ const History = () => {
   );
 };
 
-export default History;
+export default HistoryPage;
