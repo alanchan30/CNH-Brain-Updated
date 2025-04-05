@@ -10,6 +10,7 @@ from auth.auth import router as auth_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from dotenv import load_dotenv
+from src.plotlyViz.controller import get_slices
 load_dotenv()
 
 # Configure CORS with a more permissive origin setup for development
@@ -144,6 +145,14 @@ async def upload_fmri(
         # Rollback the database transaction in case of an error
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/2d-fmri-data")
+async def get_2d_fmri_data(
+    db: Session = Depends(get_db),
+):
+    fmri_data = db.query(FMRI_History).all()
+    return fmri_data
 
 # Run the application if the script is executed directly
 if __name__ == "__main__":
