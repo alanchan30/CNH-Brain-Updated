@@ -17,7 +17,7 @@ export default function FileUpload() {
         noClick: true,
         noKeyboard: true,
     });
-    
+
 
     return (
         <Card className="border-none rounded-2xl shadow-2xl md:p-16 md:px-48 text-center transition hover:shadow-lg">
@@ -26,20 +26,20 @@ export default function FileUpload() {
                 className="flex flex-col items-center space-y-4"
             >
                 <input {...getInputProps()} />
-                {(files.length == 0 ?  
-                <>
-                    <UploadCloud className="text-blue-500 w-32 h-32" size={48} />
-                    <p className="text-2xl font-bold w-42">
-                        {isDragActive ? 'Drop the file here...' : 'Drag and drop or choose file:'}
-                    </p>
-                </> : <p className=' font-bold'>{files[0].name}</p> )}
-                
+                {(files.length == 0 ?
+                    <>
+                        <UploadCloud className="text-blue-500 w-32 h-32" size={48} />
+                        <p className="text-2xl font-bold w-42">
+                            {isDragActive ? 'Drop the file here...' : 'Drag and drop or choose file:'}
+                        </p>
+                    </> : <p className=' font-bold'>{files[0].name}</p>)}
+
                 <button
                     type="button"
                     onClick={open}
                     className="blue-button "
                 >
-                    {(files.length == 0 ? "choose file" : "choose other files")}
+                    {(files.length == 0 ? "Choose File" : "Choose Other Files")}
                 </button>
             </CardContent>
         </Card>
