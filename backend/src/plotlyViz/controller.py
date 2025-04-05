@@ -5,7 +5,7 @@ from nilearn import datasets, image
 
 
 def get_slices(fmri_data):
-    brain_img = nib.load(fmri_data.brain_image)
+    brain_img = nib.load(fmri_data)
     mni_ref = datasets.load_mni152_template(resolution=1)
     atlas = datasets.fetch_atlas_harvard_oxford(
         'cort-maxprob-thr50-1mm', symmetric_split=True)
@@ -36,4 +36,7 @@ def get_slices(fmri_data):
 
 
 # if __name__ == "__main__":
+    
+
+
     

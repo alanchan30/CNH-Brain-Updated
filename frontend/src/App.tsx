@@ -11,6 +11,7 @@ import MFACheck from "./pages/MFACheck";
 import LandingPage from "./pages/LandingPage";
 import History from "./pages/HistoryPage";
 import Upload from "./pages/Upload";
+import ResultsPage from "./pages/ResultsPage";
 
 const ProtectedRoute = ({
   children,
@@ -70,6 +71,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <History />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/results"
+            element={
+              <ProtectedRoute>
+                <ResultsPage />
               </ProtectedRoute>
             }
           />

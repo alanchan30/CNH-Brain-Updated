@@ -20,7 +20,7 @@ const ResultsPage = () => {
     return (
         <div className="h-screen flex flex-col">
             <Header 
-                redirect={() => navigate("/dashboard")} 
+                redirect={() => navigate("/landing")} 
                 showButton={true}
                 page="results"
             />
