@@ -157,16 +157,13 @@ async def get_2d_fmri_data(
     file_name = fmri_data["file_link"]
     print(f"File name: {file_name}")
     try:
-        # Download file bytes from Supabase storage
         file_bytes = supabase.storage.from_("fmri-uploads").download(file_name)
         
-        # Write the bytes to a temporary file
         with tempfile.NamedTemporaryFile(suffix=".nii.gz", delete=False) as temp_file:
             temp_file.write(file_bytes)
             temp_file.flush()
-            temp_file_name = temp_file.name  # get the file path
+            temp_file_name = temp_file.name  
 
-        # Process the temporary file
         slices = get_slices(temp_file_name)
         
         return slices

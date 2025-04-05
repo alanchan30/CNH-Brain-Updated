@@ -1,21 +1,36 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Header from "../components/ui/header";
 import { Slider } from "@/components/ui/slider"
 import { ThreeDimRes } from "@/components/ThreeDimRes";
 import { TwoDimRes } from "@/components/TwoDimRes";
+import { API_URL } from "@/components/constants";
 import { SideViewRes } from "@/components/SideViewRes";
 
 const ResultsPage = () => {
     const { user, isAuthenticated, loading, } = useAuth();
     const navigate = useNavigate();
-  
+    const [twoDResults, setTwoDResults] = useState<any>(null);
     useEffect(() => {
       if (!loading && !isAuthenticated) {
         navigate("/login");
       }
     }, [loading, isAuthenticated, navigate]);
+
+    const fetch2dResults = async () => {
+        // NOTE TO WHOEVER, EVENTUALLY GET THE SESSION/FMRI HISTORY ID AND REPLACE 1 WITH IT
+        const response = await fetch(`${API_URL}/2d-fmri-data/2`)
+        const data = await response.json();
+        setTwoDResults(data);
+    }
+
+    useEffect(() => {
+        fetch2dResults();
+    }, []);
+    useEffect(() => {
+        console.log("twoDResults", twoDResults);
+    }, [twoDResults]);
     
     return (
         <div className="h-screen flex flex-col">
