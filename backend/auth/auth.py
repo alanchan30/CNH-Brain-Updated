@@ -169,3 +169,7 @@ async def get_current_user(request: Request):
         }
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+@router.get("/api/history")
+async def get_history(user=Depends(get_current_user)):
+    response = supabase.from_("analysis_history").select("*").eq("user_id", user["id"])
