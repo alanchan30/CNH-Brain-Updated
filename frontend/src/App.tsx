@@ -12,6 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import History from "./pages/HistoryPage";
 import Upload from "./pages/Upload";
 import ResultsPage from "./pages/ResultsPage";
+import NotFoundPage from "./pages/404";
 
 const ProtectedRoute = ({
   children,
@@ -82,7 +83,17 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/results/:id"
+            element={
+              <ProtectedRoute>
+                <ResultsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/landing" replace />} />
+          <Route path="/404" element={<NotFoundPage />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

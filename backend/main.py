@@ -30,7 +30,8 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5173",
+                   "http://localhost:3000", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,13 +44,18 @@ app.include_router(auth_router, prefix="/api", tags=["authentication"])
 security = HTTPBearer()
 
 # Get supabase client with user token for authenticated requests
+
+
 def get_supabase_client(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Client:
     supabase.auth.set_auth(credentials.credentials)
     return supabase
 
 # For non-authenticated endpoints
+
+
 def get_public_client():
     return supabase
+
 
 # File upload constants
 ALLOWED_EXTENSIONS = {"nii", "nii.gz", "DCM"}
@@ -60,13 +66,16 @@ ALLOWED_MIME_TYPES = {
     "image/dicom"
 }
 
+
 @app.get("/api/hello")
 async def hello():
     return {"message": "Hello from FastAPI!"}
 
+
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
+
 
 @app.post("/api/upload")
 async def upload_fmri(
@@ -85,7 +94,7 @@ async def upload_fmri(
             file_extension = file.filename.split('.', 1)[1]
         else:
             file_extension = ""
-        
+
         mime_type = file.content_type
 
         if file_extension not in ALLOWED_EXTENSIONS or mime_type not in ALLOWED_MIME_TYPES:
@@ -101,20 +110,20 @@ async def upload_fmri(
 
         # Read file contents
         file_contents = await file.read()
-        
+
         # Compress file contents
         compressed_buffer = BytesIO()
         with gzip.GzipFile(fileobj=compressed_buffer, mode="wb") as gz:
             gz.write(file_contents)
         compressed_data = compressed_buffer.getvalue()
-        
+
         # Upload file to Supabase storage
         storage_response = supabase.storage.from_("fmri-uploads").upload(
             path=unique_filename,
             file=compressed_data,
             file_options={"content-type": file.content_type}
         )
-        
+
         # Insert record into database
         fmri_data = {
             "user_id": user_id,
@@ -125,10 +134,10 @@ async def upload_fmri(
             "diagnosis": diagnosis,
             "file_link": unique_filename
         }
-        
+
         # Insert into the fmri_history table
         result = supabase.table("fmri_history").insert(fmri_data).execute()
-        
+
         # Get the inserted record's ID
         if result.data and len(result.data) > 0:
             fmri_id = result.data[0]['fmri_id']
@@ -138,37 +147,58 @@ async def upload_fmri(
                 "file_path": unique_filename
             }
         else:
-            raise HTTPException(status_code=500, detail="Failed to retrieve inserted record ID")
+            raise HTTPException(
+                status_code=500, detail="Failed to retrieve inserted record ID")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/2d-fmri-data/{fmri_id}")
 async def get_2d_fmri_data(
     fmri_id: int,
     supabase: Client = Depends(get_public_client),
 ):
-    response = supabase.table("fmri_history").select("*").eq("fmri_id", fmri_id).execute()
-    
+    # Fetch FMRI data record from database
+    response = supabase.table("fmri_history").select(
+        "*").eq("fmri_id", fmri_id).execute()
+
     if not response.data or len(response.data) == 0:
         raise HTTPException(status_code=404, detail="FMRI data not found")
-    
+
     fmri_data = response.data[0]
     file_name = fmri_data["file_link"]
     print(f"File name: {file_name}")
+
     try:
+        # Download file from Supabase storage
         file_bytes = supabase.storage.from_("fmri-uploads").download(file_name)
-        
-        with tempfile.NamedTemporaryFile(suffix=".nii.gz", delete=False) as temp_file:
+
+        # Determine appropriate file extension
+        file_extension = ".nii"
+        if file_name.lower().endswith(".nii.gz"):
+            file_extension = ".nii.gz"
+
+        # Create temporary file with appropriate extension
+        with tempfile.NamedTemporaryFile(suffix=file_extension, delete=False) as temp_file:
             temp_file.write(file_bytes)
             temp_file.flush()
-            temp_file_name = temp_file.name  
+            temp_file_name = temp_file.name
 
+        # Process the file
         slices = get_slices(temp_file_name)
-        
+
+        # Clean up the temporary file after processing
+        try:
+            os.unlink(temp_file_name)
+        except Exception as e:
+            print(
+                f"Warning: Could not delete temporary file {temp_file_name}: {str(e)}")
+
         return slices
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving file: {str(e)}")
 
 
 @app.get("/api/user-fmri-history/{user_id}")
@@ -177,11 +207,12 @@ async def get_user_fmri_history(
     supabase: Client = Depends(get_public_client),
 ):
     # Query all FMRI records for a specific user
-    response = supabase.table("fmri_history").select("*").eq("user_id", user_id).execute()
-    
+    response = supabase.table("fmri_history").select(
+        "*").eq("user_id", user_id).execute()
+
     if not response.data:
         return {"history": []}
-        
+
     return {"history": response.data}
 
 # Run the application if the script is executed directly
