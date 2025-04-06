@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 interface HeaderProps {
   redirect: () => void;
   showButton: boolean;
-  page: "upload" | "history" | "landing";
+  page: "upload" | "history" | "landing" | "results";
 }
 
 export default function Header({ redirect, showButton, page }: HeaderProps) {

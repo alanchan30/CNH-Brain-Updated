@@ -304,50 +304,65 @@ export function EnrollMFA({
   }, []);
 
   return (
-    <RoundedCard>
-      <CardHeader>
-        <CardTitle className="text-center">
+    <RoundedCard className="max-w-md mx-auto bg-white/95 backdrop-blur-sm">
+      <CardHeader className="space-y-2">
+        <CardTitle className="text-2xl font-bold text-center text-gray-800">
           Set Up Two-Factor Authentication
         </CardTitle>
+        <p className="text-gray-600 text-center text-sm">
+          Secure your account with an additional layer of protection
+        </p>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-6">
-          {/* Only show normal errors, not the suppressed ones */}
           {error && !error.includes("friendly name") && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
+            <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-200">
+              {error}
+            </div>
           )}
 
-          {/* Show a generic helpful message when we get the suppressed error */}
           {error && error.includes("friendly name") && (
-            <div className="text-amber-600 text-sm text-center p-2 bg-amber-50 rounded-md border border-amber-100">
-              <p className="font-medium">Having trouble?</p>
+            <div className="text-amber-600 text-sm text-center p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="font-medium mb-1">Having trouble?</p>
               <p>
-                Try refreshing the page or opening in a private/incognito
-                window.
+                Try refreshing the page or opening in a private/incognito window.
               </p>
             </div>
           )}
 
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-6">
             {isLoading ? (
-              <div className="text-gray-500">Generating QR code...</div>
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                <span className="ml-3 text-gray-600">Generating QR code...</span>
+              </div>
             ) : qr ? (
-              <img
-                src={qr}
-                alt="MFA QR Code"
-                className="mx-auto w-48 h-48"
-                onError={(e) => {
-                  console.error("Image failed to load:", qr);
-                  e.currentTarget.style.display = "none";
-                }}
-              />
+              <div className="bg-white p-6 rounded-xl shadow-inner">
+                <img
+                  src={qr}
+                  alt="MFA QR Code"
+                  className="mx-auto w-48 h-48 transition-all duration-300 ease-in-out hover:scale-105"
+                  onError={(e) => {
+                    console.error("Image failed to load:", qr);
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              </div>
             ) : (
-              <div className="text-gray-500">Failed to generate QR code</div>
+              <div className="text-gray-500 p-4 bg-gray-50 rounded-lg">
+                Failed to generate QR code
+              </div>
             )}
-            <div className="text-sm text-gray-600 text-center">
-              <p>1. Install Google Authenticator</p>
-              <p>2. Scan the QR code within authenticator</p>
-              <p>3. Input the 6-digit code from the authenticator app</p>
+            <div className="text-sm text-gray-600 space-y-2 bg-blue-50 p-4 rounded-lg w-full">
+              <p className="flex items-center">
+                <span className="font-bold mr-2">1.</span> Install Google Authenticator
+              </p>
+              <p className="flex items-center">
+                <span className="font-bold mr-2">2.</span> Scan the QR code within authenticator
+              </p>
+              <p className="flex items-center">
+                <span className="font-bold mr-2">3.</span> Input the 6-digit code from the authenticator app
+              </p>
             </div>
           </div>
           <Input
@@ -357,25 +372,31 @@ export function EnrollMFA({
             maxLength={6}
             value={verifyCode}
             onChange={(e) => {
-              // Only allow numeric input
               const numericValue = e.target.value.replace(/\D/g, "");
               setVerifyCode(numericValue);
             }}
             placeholder="Enter 6-digit code"
-            className="text-center"
+            className="text-center text-2xl tracking-wider h-14 bg-gray-50 border-2 focus:border-blue-500 transition-all duration-200"
           />
           <div className="flex flex-col gap-3">
             <Button
               onClick={onEnableClicked}
-              className="w-full red-login h-12 text-base"
-              disabled={isVerifying}
+              className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+              disabled={isVerifying || verifyCode.length !== 6}
             >
-              {isVerifying ? "Loading..." : "Enable"}
+              {isVerifying ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Verifying...
+                </div>
+              ) : (
+                "Enable 2FA"
+              )}
             </Button>
             <Button
               onClick={handleCancel}
               variant="outline"
-              className="w-full h-12 text-base bg-red-500 text-white border border-red-500 hover:bg-red-600 hover:border-red-600"
+              className="w-full h-12 text-base border-2 border-red-500 text-red-500 hover:bg-red-50 transition-colors duration-200"
               disabled={isVerifying}
             >
               Cancel
@@ -395,7 +416,44 @@ export function AuthMFA({
   const [verifyCode, setVerifyCode] = useState("");
   const [error, setError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [qrCode, setQRCode] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if we need to show QR code on mount
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const { data: factorsResponse } = await supabase.auth.mfa.listFactors();
+      if (!factorsResponse?.totp || factorsResponse.totp.length === 0) {
+        // No TOTP factors found, we should show QR code
+        await generateNewQRCode();
+      }
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+    }
+  };
+
+  const generateNewQRCode = async () => {
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+      });
+      
+      if (error) throw error;
+      
+      if (data.totp.qr_code) {
+        setQRCode(data.totp.qr_code);
+        setShowQR(true);
+      }
+    } catch (error) {
+      console.error("Error generating new QR code:", error);
+      setError("Failed to generate new QR code");
+    }
+  };
 
   const handleCancel = () => {
     // Navigate back instead of signing out
@@ -536,65 +594,90 @@ export function AuthMFA({
   };
 
   return (
-    <RoundedCard>
-      <CardHeader>
-        <CardTitle className="text-center">Two-Factor Authentication</CardTitle>
+    <RoundedCard className="max-w-md mx-auto bg-white/95 backdrop-blur-sm">
+      <CardHeader className="space-y-2">
+        <CardTitle className="text-2xl font-bold text-center text-gray-800">
+          Two-Factor Authentication
+        </CardTitle>
+        <p className="text-gray-600 text-center text-sm">
+          {showQR ? "Scan the QR code to set up 2FA" : "Enter your authentication code"}
+        </p>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {error && !error.includes("friendly name") && !error.includes("Code needs to be non-empty") && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
+            <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-200">
+              {error}
+            </div>
           )}
 
-          {/* Show a generic helpful message when we get the suppressed error */}
           {error && error.includes("friendly name") && (
-            <div className="text-amber-600 text-sm text-center p-2 bg-amber-50 rounded-md border border-amber-100">
-              <p className="font-medium">Having trouble?</p>
+            <div className="text-amber-600 text-sm text-center p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="font-medium mb-1">Having trouble?</p>
               <p>
-                Try refreshing the page or opening in a private/incognito
-                window.
+                Try refreshing the page or opening in a private/incognito window.
               </p>
             </div>
           )}
-          {error && error.includes("Code needs to be non-empty") && (
-            <div className="text-amber-600 text-sm text-center p-2 bg-amber-50 rounded-md border border-amber-100">
-              <p>
-                Please enter a valid code from your authenticator app.
+
+          {showQR && qrCode && (
+            <div className="flex flex-col items-center gap-4 mb-4">
+              <div className="bg-white p-6 rounded-xl shadow-inner">
+                <img
+                  src={qrCode}
+                  alt="MFA QR Code"
+                  className="mx-auto w-48 h-48 transition-all duration-300 ease-in-out hover:scale-105"
+                />
+              </div>
+              <div className="text-sm text-gray-600 space-y-2 bg-blue-50 p-4 rounded-lg w-full">
+                <p>Scan this QR code with your authenticator app to continue</p>
+              </div>
+            </div>
+          )}
+
+          {!showQR && (
+            <div className="text-center mb-4">
+              <p className="text-gray-600">
+                Enter the code from your authenticator app
               </p>
             </div>
           )}
-          <div className="mb-4 text-center">
-            Please enter the code from your authenticator app.
-          </div>
-          {/* Only show normal errors, not the suppressed ones */}
-          <input
+
+          <Input
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={6}
             value={verifyCode}
             onChange={(e) => {
-              // Only allow numeric input
               const numericValue = e.target.value.replace(/\D/g, "");
               setVerifyCode(numericValue);
             }}
-            className="w-full p-2 mb-4 border border-gray-300 rounded text-center"
+            className="text-center text-2xl tracking-wider h-14 bg-gray-50 border-2 focus:border-blue-500 transition-all duration-200"
             placeholder="Enter 6-digit code"
           />
-          <div className="flex flex-col gap-3">
+
+          <div className="flex flex-col gap-3 mt-2">
             <Button
               onClick={onSubmitClicked}
-              className="w-full red-login h-12 text-base"
-              disabled={isVerifying}
+              className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+              disabled={isVerifying || verifyCode.length !== 6}
             >
-              {isVerifying ? "Loading..." : "Verify"}
+              {isVerifying ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Verifying...
+                </div>
+              ) : (
+                "Verify"
+              )}
             </Button>
             <Button
               onClick={handleCancel}
-              className="w-full h-12 text-base red-login text-white"
+              className="w-full h-12 text-base border-2 border-red-500 text-red-500 hover:bg-red-50 transition-colors duration-200"
               disabled={isVerifying}
             >
-              Cancel and Logout
+              Cancel
             </Button>
           </div>
         </div>
