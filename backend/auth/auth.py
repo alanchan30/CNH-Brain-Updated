@@ -5,6 +5,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
 from typing import Optional
+from datetime import timedelta
 
 load_dotenv()
 
@@ -15,8 +16,14 @@ supabase_url = os.environ.get("SUPABASE_URL")
 # Use service key for admin rights
 supabase_key = os.environ.get("SUPABASE_ANON_KEY")
 supabase_service_key = os.environ.get("SUPABASE_SERVICE_KEY")
+
+# Set session duration to 1 month (in seconds)
+SESSION_EXPIRY = timedelta(days=30).total_seconds()
+
+
 supabase: Client = create_client(supabase_url, supabase_key)
-supabase_service: Client = create_client(supabase_url, supabase_service_key)
+supabase_service: Client = create_client(
+    supabase_url, supabase_service_key)
 
 
 class LoginRequest(BaseModel):

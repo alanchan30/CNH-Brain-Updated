@@ -12,13 +12,25 @@ import { useParams } from "react-router-dom";
 import Plot from "react-plotly.js";
 import { ClipLoader } from "react-spinners";
 
-const ResultsPage = () => {
+interface BrainViews {
+  axial: number[][];
+  coronal: number[][];
+  sagittal: number[][];
+}
+
+interface BrainData {
+  brain: BrainViews;
+  atlas: number[][];
+  labels: string[];
+}
+
+const ResultsPage: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [twoDResults, setTwoDResults] = useState<any>(null);
-  const [sliceIndex, setSliceIndex] = useState<number>(33);
+  const [brainData, setBrainData] = useState<BrainData | null>(null);
+  const [sliceIndex, setSliceIndex] = useState<number | null>(null);
   const [dataLoading, setDataLoading] = useState<boolean>(true);
-  const { id } = useParams(); // Get the ID from the URL
+  const { id } = useParams();
 
   useEffect(() => {
     if (!id) {
@@ -32,47 +44,75 @@ const ResultsPage = () => {
     }
   }, [authLoading, isAuthenticated, navigate]);
 
-  const fetch2dResults = async () => {
+  const fetchBrainData = async () => {
     try {
       setDataLoading(true);
       const response = await fetch(`${API_URL}/2d-fmri-data/${id}`);
       if (!response.ok) {
         throw new Error("Failed to fetch brain data");
       }
-      const data = await response.json();
-      setTwoDResults(data);
+      const data: BrainData = await response.json();
+      setBrainData(data);
+
+      // Set slice index to middle of the brain data
+      if (data.brain && data.brain.axial) {
+        setSliceIndex(Math.floor(data.brain.axial.length / 2));
+      }
     } catch (error) {
-      console.error("Error fetching 2D results:", error);
+      console.error("Error fetching brain data:", error);
     } finally {
       setDataLoading(false);
     }
   };
 
   useEffect(() => {
-    fetch2dResults();
+    fetchBrainData();
   }, [id]);
 
   const handleSliderChange = (values: number[]) => {
     setSliceIndex(values[0]);
-    // In a full implementation, you would fetch a new slice at this index
-    // or calculate it from 3D data
   };
 
   // Function to create hover text based on atlas data and labels
-  const createHoverTemplate = (x: number, y: number, z: number) => {
-    if (!twoDResults || !twoDResults.atlas || !twoDResults.labels) {
-      return "No region data available";
-    }
-
-    try {
-      const regionIndex = twoDResults.atlas[y][x];
-      if (regionIndex >= 0 && regionIndex < twoDResults.labels.length) {
-        return `Region: ${twoDResults.labels[regionIndex]}`;
+  const createHoverTemplate = (atlas: number[][], labels: string[]) => {
+    return (x: number, y: number): string => {
+      if (!atlas || !labels) {
+        return "No region data available";
       }
-      return "No specific region";
-    } catch (error) {
-      return "Region data unavailable";
-    }
+
+      try {
+        if (y < 0 || y >= atlas.length || x < 0 || x >= atlas[y].length) {
+          return "Outside brain region";
+        }
+
+        const regionIndex = atlas[y][x];
+        if (regionIndex > 0 && regionIndex < labels.length) {
+          return `Region: ${labels[regionIndex]}`;
+        }
+        return "No specific region";
+      } catch (error) {
+        return "Region data unavailable";
+      }
+    };
+  };
+
+  // Create custom data for hover info
+  const createCustomData = (
+    atlas: number[][],
+    labels: string[]
+  ): string[][] => {
+    if (!atlas || !labels)
+      return Array(atlas?.length || 0).fill(
+        Array(atlas?.[0]?.length || 0).fill("No data")
+      );
+
+    return atlas.map((row: number[]) =>
+      row.map((regionIndex: number) =>
+        regionIndex > 0 && regionIndex < labels.length
+          ? labels[regionIndex]
+          : "No specific region"
+      )
+    );
   };
 
   return (
@@ -100,23 +140,17 @@ const ResultsPage = () => {
         </div>
 
         <div className="bg-white rounded-b-lg shadow-md p-4 mb-8">
-          {/* For the brain image */}
-          <div className="flex flex-col items-center justify-center mb-6">
-            <TwoDimRes />
-
-            {/* Slider component with proper labeling */}
-            <div className="w-full max-w-2xl mt-4">
-              <p className="text-gray-700 mb-2 font-medium">
-                Slice Index: {sliceIndex}
-              </p>
-              <Slider
-                defaultValue={[sliceIndex]}
-                value={[sliceIndex]}
-                max={100}
-                step={1}
-                onValueChange={handleSliderChange}
-              />
-            </div>
+          {/* Slider component with proper labeling */}
+          <div className="w-full max-w-2xl mx-auto mb-6">
+            <p className="text-gray-700 mb-2 font-medium">
+              Slice Index: {sliceIndex || "-"}
+            </p>
+            <Slider
+              value={sliceIndex ? [sliceIndex] : [50]}
+              max={100}
+              step={1}
+              onValueChange={handleSliderChange}
+            />
           </div>
 
           {/* Brain view cards */}
@@ -128,24 +162,38 @@ const ResultsPage = () => {
                   Loading brain slices...
                 </p>
               </div>
-            ) : twoDResults ? (
+            ) : brainData ? (
               <>
                 <div className="border border-gray-200 rounded-lg shadow-md overflow-hidden">
                   <Plot
                     data={[
                       {
-                        z: twoDResults.brain.axial,
+                        z: brainData.brain.axial,
                         type: "heatmap",
                         colorscale: "Viridis",
                         zsmooth: "best",
-                        hovertemplate:
-                          "X: %{x}<br>" +
-                          "Y: %{y}<br>" +
-                          "%{customdata}<extra></extra>",
+                        showscale: false,
+                        customdata:
+                          brainData.atlas && brainData.labels
+                            ? createCustomData(
+                                brainData.atlas,
+                                brainData.labels
+                              )
+                            : undefined,
+                        hovertemplate: "Region: %{customdata}<extra></extra>",
+                        hoverinfo: "z",
+                        hoverlabel: { bgcolor: "#333" },
                       },
                       {
-                        z: twoDResults.atlas,
+                        z: brainData.atlas,
                         type: "contour",
+                        contours: {
+                          coloring: "none",
+                          showlines: true,
+                          start: 1,
+                          end: brainData.labels ? brainData.labels.length : 10,
+                          size: 1,
+                        },
                         line: { color: "white", width: 1 },
                         showscale: false,
                         hoverinfo: "skip",
@@ -155,11 +203,13 @@ const ResultsPage = () => {
                       title: "Axial View",
                       width: 320,
                       height: 320,
-                      paper_bgcolor: "#111",
-                      plot_bgcolor: "#111",
+                      paper_bgcolor: "black",
+                      plot_bgcolor: "black",
                       font: { color: "white" },
                       margin: { l: 10, r: 10, t: 40, b: 10 },
                       hovermode: "closest",
+                      xaxis: { showgrid: false, zeroline: false },
+                      yaxis: { showgrid: false, zeroline: false },
                     }}
                     config={{
                       displayModeBar: false,
@@ -175,25 +225,28 @@ const ResultsPage = () => {
                   <Plot
                     data={[
                       {
-                        z: twoDResults.brain.coronal,
+                        z: brainData.brain.coronal,
                         type: "heatmap",
                         colorscale: "Viridis",
                         zsmooth: "best",
+                        showscale: false,
+                        hoverinfo: "z",
                         hovertemplate:
-                          "X: %{x}<br>" +
-                          "Y: %{y}<br>" +
-                          "Value: %{z:.2f}<extra></extra>",
+                          "X: %{x}<br>Y: %{y}<br>Value: %{z:.2f}<extra></extra>",
+                        hoverlabel: { bgcolor: "#333" },
                       },
                     ]}
                     layout={{
                       title: "Coronal View",
                       width: 320,
                       height: 320,
-                      paper_bgcolor: "#111",
-                      plot_bgcolor: "#111",
+                      paper_bgcolor: "black",
+                      plot_bgcolor: "black",
                       font: { color: "white" },
                       margin: { l: 10, r: 10, t: 40, b: 10 },
                       hovermode: "closest",
+                      xaxis: { showgrid: false, zeroline: false },
+                      yaxis: { showgrid: false, zeroline: false },
                     }}
                     config={{
                       displayModeBar: false,
@@ -209,25 +262,28 @@ const ResultsPage = () => {
                   <Plot
                     data={[
                       {
-                        z: twoDResults.brain.sagittal,
+                        z: brainData.brain.sagittal,
                         type: "heatmap",
                         colorscale: "Viridis",
                         zsmooth: "best",
+                        showscale: false,
+                        hoverinfo: "z",
                         hovertemplate:
-                          "X: %{x}<br>" +
-                          "Y: %{y}<br>" +
-                          "Value: %{z:.2f}<extra></extra>",
+                          "X: %{x}<br>Y: %{y}<br>Value: %{z:.2f}<extra></extra>",
+                        hoverlabel: { bgcolor: "#333" },
                       },
                     ]}
                     layout={{
                       title: "Sagittal View",
                       width: 320,
                       height: 320,
-                      paper_bgcolor: "#111",
-                      plot_bgcolor: "#111",
+                      paper_bgcolor: "black",
+                      plot_bgcolor: "black",
                       font: { color: "white" },
                       margin: { l: 10, r: 10, t: 40, b: 10 },
                       hovermode: "closest",
+                      xaxis: { showgrid: false, zeroline: false },
+                      yaxis: { showgrid: false, zeroline: false },
                     }}
                     config={{
                       displayModeBar: false,
@@ -245,7 +301,7 @@ const ResultsPage = () => {
                   Failed to load brain data. Please try again later.
                 </p>
                 <button
-                  onClick={fetch2dResults}
+                  onClick={fetchBrainData}
                   className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
                 >
                   Retry
