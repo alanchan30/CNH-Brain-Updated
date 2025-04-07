@@ -21,7 +21,7 @@ const ProtectedRoute = ({
   children: React.ReactNode;
   requireMFA?: boolean;
 }) => {
-  const { isAuthenticated, loading, requiresMFA } = useAuth(); // Now requiresMFA is defined in context
+  const { isAuthenticated, loading, requiresMFA } = useAuth();
 
   if (loading) {
     return (
@@ -35,8 +35,6 @@ const ProtectedRoute = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Only redirect if MFA is required by both the route and the user's status
-  // Check current path to prevent infinite redirects
   if (requireMFA && requiresMFA && window.location.pathname !== "/mfa") {
     return <Navigate to="/mfa" replace />;
   }
@@ -49,8 +47,11 @@ const App = () => {
     <AuthProvider>
       <Router>
         <Routes>
+          {/* Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/mfa" element={<MFACheck />} />
+
+          {/* Protected Routes */}
           <Route
             path="/landing"
             element={
@@ -76,14 +77,6 @@ const App = () => {
             }
           />
           <Route
-            path="/results"
-            element={
-              <ProtectedRoute>
-                <ResultsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/results/:id"
             element={
               <ProtectedRoute>
@@ -91,8 +84,14 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+
+          {/* Redirect root to landing */}
           <Route path="/" element={<Navigate to="/landing" replace />} />
+
+          {/* 404 Route */}
           <Route path="/404" element={<NotFoundPage />} />
+
+          {/* Catch all undefined routes */}
           <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
       </Router>

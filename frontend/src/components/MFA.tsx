@@ -325,7 +325,8 @@ export function EnrollMFA({
             <div className="text-amber-600 text-sm text-center p-4 bg-amber-50 rounded-lg border border-amber-200">
               <p className="font-medium mb-1">Having trouble?</p>
               <p>
-                Try refreshing the page or opening in a private/incognito window.
+                Try refreshing the page or opening in a private/incognito
+                window.
               </p>
             </div>
           )}
@@ -334,7 +335,9 @@ export function EnrollMFA({
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                <span className="ml-3 text-gray-600">Generating QR code...</span>
+                <span className="ml-3 text-gray-600">
+                  Generating QR code...
+                </span>
               </div>
             ) : qr ? (
               <div className="bg-white p-6 rounded-xl shadow-inner">
@@ -355,13 +358,16 @@ export function EnrollMFA({
             )}
             <div className="text-sm text-gray-600 space-y-2 bg-blue-50 p-4 rounded-lg w-full">
               <p className="flex items-center">
-                <span className="font-bold mr-2">1.</span> Install Google Authenticator
+                <span className="font-bold mr-2">1.</span> Install Google
+                Authenticator
               </p>
               <p className="flex items-center">
-                <span className="font-bold mr-2">2.</span> Scan the QR code within authenticator
+                <span className="font-bold mr-2">2.</span> Scan the QR code
+                within authenticator
               </p>
               <p className="flex items-center">
-                <span className="font-bold mr-2">3.</span> Input the 6-digit code from the authenticator app
+                <span className="font-bold mr-2">3.</span> Input the 6-digit
+                code from the authenticator app
               </p>
             </div>
           </div>
@@ -442,9 +448,9 @@ export function AuthMFA({
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
       });
-      
+
       if (error) throw error;
-      
+
       if (data.totp.qr_code) {
         setQRCode(data.totp.qr_code);
         setShowQR(true);
@@ -600,22 +606,27 @@ export function AuthMFA({
           Two-Factor Authentication
         </CardTitle>
         <p className="text-gray-600 text-center text-sm">
-          {showQR ? "Scan the QR code to set up 2FA" : "Enter your authentication code"}
+          {showQR
+            ? "Scan the QR code to set up 2FA"
+            : "Enter your authentication code"}
         </p>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
-          {error && !error.includes("friendly name") && !error.includes("Code needs to be non-empty") && (
-            <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-200">
-              {error}
-            </div>
-          )}
+          {error &&
+            !error.includes("friendly name") &&
+            !error.includes("Code needs to be non-empty") && (
+              <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-200">
+                {error}
+              </div>
+            )}
 
           {error && error.includes("friendly name") && (
             <div className="text-amber-600 text-sm text-center p-4 bg-amber-50 rounded-lg border border-amber-200">
               <p className="font-medium mb-1">Having trouble?</p>
               <p>
-                Try refreshing the page or opening in a private/incognito window.
+                Try refreshing the page or opening in a private/incognito
+                window.
               </p>
             </div>
           )}

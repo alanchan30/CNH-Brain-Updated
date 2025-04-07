@@ -79,7 +79,7 @@ async def health_check():
 
 @app.post("/api/upload")
 async def upload_fmri(
-    user_id: int = Form(...),
+    user_id: str = Form(...),
     title: str = Form(...),
     description: str = Form(...),
     gender: str = Form(...),
@@ -203,10 +203,9 @@ async def get_2d_fmri_data(
 
 @app.get("/api/user-fmri-history/{user_id}")
 async def get_user_fmri_history(
-    user_id: int,
+    user_id: str,
     supabase: Client = Depends(get_public_client),
 ):
-    # Query all FMRI records for a specific user
     response = supabase.table("fmri_history").select(
         "*").eq("user_id", user_id).execute()
 
