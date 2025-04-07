@@ -3,8 +3,7 @@ import numpy as np
 from nilearn import datasets, image
 
 
-
-def get_slices(fmri_data):
+def get_slices(fmri_data, slice_index):
     brain_img = nib.load(fmri_data)
     mni_ref = datasets.load_mni152_template(resolution=1)
     atlas = datasets.fetch_atlas_harvard_oxford(
@@ -19,24 +18,31 @@ def get_slices(fmri_data):
     # Convert to arrays
     brain_data = brain_img.get_fdata()
     atlas_data = resampled_atlas.get_fdata().astype(int)
-    mid_axial = brain_data[:, :, brain_data.shape[2] // 2].T.tolist()
-    mid_coronal = brain_data[:, brain_data.shape[1] // 2, :].T.tolist()
-    mid_sagittal = np.flipud(brain_data[brain_data.shape[0] // 2, :, :].T).tolist()
-    atlas_slice = atlas_data[:, :, brain_data.shape[2] // 2].T.astype(int).tolist()
+    axial_slice = brain_data[:, :, slice_index]
+    coronal_slice = brain_data[:, slice_index, :]
+    sagittal_slice = brain_data[slice_index, :, :]
+    axial_atlas = atlas_data[:, :, slice_index]
+    coronal_atlas = atlas_data[:, slice_index, :]
+    sagittal_atlas = atlas_data[slice_index, :, :]
+    print(type(axial_slice))
+    print(type(axial_atlas))
+    print(type(brain_data))
+    max_slice_index = brain_data.shape[2] - 1  # Use axial depth
 
     return ({
         "brain": {
-            "axial": mid_axial,
-            "coronal": mid_coronal,
-            "sagittal": mid_sagittal,
+            "axial": axial_slice.tolist(),
+            "coronal": coronal_slice.tolist(),
+            "sagittal": sagittal_slice.tolist(),
         },
-        "atlas": atlas_slice,
-        "labels": labels
+        "atlas": {
+            "axial": axial_atlas.tolist(),
+            "coronal": coronal_atlas.tolist(),
+            "sagittal": sagittal_atlas.tolist(),
+        },
+        "labels": labels,
+        "max_index": max_slice_index
     })
 
 
 # if __name__ == "__main__":
-    
-
-
-    

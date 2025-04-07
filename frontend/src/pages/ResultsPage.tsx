@@ -3,14 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { useEffect, useState } from "react";
 import Header from "../components/ui/header";
-import { Slider } from "@/components/ui/slider";
 import { ThreeDimRes } from "@/components/ThreeDimRes";
-import { TwoDimRes } from "@/components/TwoDimRes";
 import { API_URL } from "@/components/constants";
-import { SideViewRes } from "@/components/SideViewRes";
 import { useParams } from "react-router-dom";
 import Plot from "react-plotly.js";
 import { ClipLoader } from "react-spinners";
+
+interface AtlasViews {
+  axial: number[][];
+  coronal: number[][];
+  sagittal: number[][];
+}
 
 interface BrainViews {
   axial: number[][];
@@ -20,17 +23,38 @@ interface BrainViews {
 
 interface BrainData {
   brain: BrainViews;
-  atlas: number[][];
+  atlas: AtlasViews;
   labels: string[];
 }
+
+interface CacheItem {
+  data: BrainData;
+  timestamp: number;
+}
+
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+const SLICE_BATCH_SIZE = 5; // Number of slices to fetch at once
 
 const ResultsPage: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [brainData, setBrainData] = useState<BrainData | null>(null);
-  const [sliceIndex, setSliceIndex] = useState<number | null>(null);
+  const [sliceIndex, setSliceIndex] = useState<number>(94);
+  const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(94);
+  const [maxSliceIndex, setMaxSliceIndex] = useState<number>(100);
   const [dataLoading, setDataLoading] = useState<boolean>(true);
   const { id } = useParams();
+
+  const fetchBrainData = async (index: number) => {
+    const response = await fetch(`${API_URL}/2d-fmri-data/${id}/${index}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch brain data");
+    }
+    const data = await response.json();
+    setBrainData(data);
+    setDataLoading(false);
+    setMaxSliceIndex(data.max_index);
+  };
 
   useEffect(() => {
     if (!id) {
@@ -44,70 +68,23 @@ const ResultsPage: React.FC = () => {
     }
   }, [authLoading, isAuthenticated, navigate]);
 
-  const fetchBrainData = async () => {
-    try {
-      setDataLoading(true);
-      const response = await fetch(`${API_URL}/2d-fmri-data/${id}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch brain data");
-      }
-      const data: BrainData = await response.json();
-      setBrainData(data);
-
-      // Set slice index to middle of the brain data
-      if (data.brain && data.brain.axial) {
-        setSliceIndex(Math.floor(data.brain.axial.length / 2));
-      }
-    } catch (error) {
-      console.error("Error fetching brain data:", error);
-    } finally {
-      setDataLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchBrainData();
-  }, [id]);
+    fetchBrainData(sliceIndex);
+  }, [id, sliceIndex]);
 
-  const handleSliderChange = (values: number[]) => {
-    setSliceIndex(values[0]);
+  const transpose = (matrix: number[][]): number[][] => {
+    if (!matrix || matrix.length === 0) return [];
+    return matrix[0].map((_, i) => matrix.map((row) => row[i]));
   };
 
-  // Function to create hover text based on atlas data and labels
-  const createHoverTemplate = (atlas: number[][], labels: string[]) => {
-    return (x: number, y: number): string => {
-      if (!atlas || !labels) {
-        return "No region data available";
-      }
-
-      try {
-        if (y < 0 || y >= atlas.length || x < 0 || x >= atlas[y].length) {
-          return "Outside brain region";
-        }
-
-        const regionIndex = atlas[y][x];
-        if (regionIndex > 0 && regionIndex < labels.length) {
-          return `Region: ${labels[regionIndex]}`;
-        }
-        return "No specific region";
-      } catch (error) {
-        return "Region data unavailable";
-      }
-    };
-  };
-
-  // Create custom data for hover info
+  // Helper function to create custom data array for hover information
   const createCustomData = (
-    atlas: number[][],
+    atlasSlice: number[][],
     labels: string[]
   ): string[][] => {
-    if (!atlas || !labels)
-      return Array(atlas?.length || 0).fill(
-        Array(atlas?.[0]?.length || 0).fill("No data")
-      );
-
-    return atlas.map((row: number[]) =>
-      row.map((regionIndex: number) =>
+    if (!atlasSlice || !labels) return [];
+    return atlasSlice.map((row) =>
+      row.map((regionIndex) =>
         regionIndex > 0 && regionIndex < labels.length
           ? labels[regionIndex]
           : "No specific region"
@@ -141,16 +118,46 @@ const ResultsPage: React.FC = () => {
 
         <div className="bg-white rounded-b-lg shadow-md p-4 mb-8">
           {/* Slider component with proper labeling */}
-          <div className="w-full max-w-2xl mx-auto mb-6">
-            <p className="text-gray-700 mb-2 font-medium">
-              Slice Index: {sliceIndex || "-"}
-            </p>
-            <Slider
-              value={sliceIndex ? [sliceIndex] : [50]}
-              max={100}
-              step={1}
-              onValueChange={handleSliderChange}
-            />
+          <div className="my-6 px-4">
+            <label
+              htmlFor="slice-slider"
+              className="block text-lg font-semibold text-gray-800 mb-3"
+            >
+              Slice Index:{" "}
+              <span className="text-blue-600 font-bold">
+                {displaySliceIndex}
+              </span>
+            </label>
+
+            <div className="relative w-full">
+              <input
+                type="range"
+                id="slice-slider"
+                min={0}
+                max={maxSliceIndex}
+                value={displaySliceIndex}
+                className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer transition-all focus:outline-none"
+                onChange={(e) => setDisplaySliceIndex(Number(e.target.value))}
+                onMouseUp={() => setSliceIndex(displaySliceIndex)}
+                onTouchEnd={() => setSliceIndex(displaySliceIndex)}
+                style={{
+                  background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${
+                    (displaySliceIndex / maxSliceIndex) * 100
+                  }%, #E5E7EB ${
+                    (displaySliceIndex / maxSliceIndex) * 100
+                  }%, #E5E7EB 100%)`,
+                }}
+              />
+              <div
+                className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-sm font-medium text-gray-600"
+                style={{
+                  left: `${(displaySliceIndex / maxSliceIndex) * 100}%`,
+                  transform: "translateX(-50%)",
+                }}
+              >
+                {displaySliceIndex}
+              </div>
+            </div>
           </div>
 
           {/* Brain view cards */}
@@ -164,28 +171,24 @@ const ResultsPage: React.FC = () => {
               </div>
             ) : brainData ? (
               <>
+                {/* Axial View */}
                 <div className="border border-gray-200 rounded-lg shadow-md overflow-hidden">
                   <Plot
                     data={[
                       {
-                        z: brainData.brain.axial,
+                        z: transpose(brainData.brain.axial),
                         type: "heatmap",
                         colorscale: "Viridis",
                         zsmooth: "best",
                         showscale: false,
-                        customdata:
-                          brainData.atlas && brainData.labels
-                            ? createCustomData(
-                                brainData.atlas,
-                                brainData.labels
-                              )
-                            : undefined,
+                        customdata: createCustomData(
+                          transpose(brainData.atlas.axial),
+                          brainData.labels
+                        ),
                         hovertemplate: "Region: %{customdata}<extra></extra>",
-                        hoverinfo: "z",
-                        hoverlabel: { bgcolor: "#333" },
                       },
                       {
-                        z: brainData.atlas,
+                        z: transpose(brainData.atlas.axial),
                         type: "contour",
                         contours: {
                           coloring: "none",
@@ -221,19 +224,35 @@ const ResultsPage: React.FC = () => {
                   </h2>
                 </div>
 
+                {/* Coronal View */}
                 <div className="border border-gray-200 rounded-lg shadow-md overflow-hidden">
                   <Plot
                     data={[
                       {
-                        z: brainData.brain.coronal,
+                        z: transpose(brainData.brain.coronal),
                         type: "heatmap",
                         colorscale: "Viridis",
                         zsmooth: "best",
                         showscale: false,
-                        hoverinfo: "z",
-                        hovertemplate:
-                          "X: %{x}<br>Y: %{y}<br>Value: %{z:.2f}<extra></extra>",
-                        hoverlabel: { bgcolor: "#333" },
+                        customdata: createCustomData(
+                          transpose(brainData.atlas.coronal),
+                          brainData.labels
+                        ),
+                        hovertemplate: "Region: %{customdata}<extra></extra>",
+                      },
+                      {
+                        z: transpose(brainData.atlas.coronal),
+                        type: "contour",
+                        contours: {
+                          coloring: "none",
+                          showlines: true,
+                          start: 1,
+                          end: brainData.labels ? brainData.labels.length : 10,
+                          size: 1,
+                        },
+                        line: { color: "white", width: 1 },
+                        showscale: false,
+                        hoverinfo: "skip",
                       },
                     ]}
                     layout={{
@@ -258,19 +277,35 @@ const ResultsPage: React.FC = () => {
                   </h2>
                 </div>
 
+                {/* Sagittal View */}
                 <div className="border border-gray-200 rounded-lg shadow-md overflow-hidden">
                   <Plot
                     data={[
                       {
-                        z: brainData.brain.sagittal,
+                        z: transpose(brainData.brain.sagittal),
                         type: "heatmap",
                         colorscale: "Viridis",
                         zsmooth: "best",
                         showscale: false,
-                        hoverinfo: "z",
-                        hovertemplate:
-                          "X: %{x}<br>Y: %{y}<br>Value: %{z:.2f}<extra></extra>",
-                        hoverlabel: { bgcolor: "#333" },
+                        customdata: createCustomData(
+                          transpose(brainData.atlas.sagittal),
+                          brainData.labels
+                        ),
+                        hovertemplate: "Region: %{customdata}<extra></extra>",
+                      },
+                      {
+                        z: transpose(brainData.atlas.sagittal),
+                        type: "contour",
+                        contours: {
+                          coloring: "none",
+                          showlines: true,
+                          start: 1,
+                          end: brainData.labels ? brainData.labels.length : 10,
+                          size: 1,
+                        },
+                        line: { color: "white", width: 1 },
+                        showscale: false,
+                        hoverinfo: "skip",
                       },
                     ]}
                     layout={{
@@ -301,7 +336,7 @@ const ResultsPage: React.FC = () => {
                   Failed to load brain data. Please try again later.
                 </p>
                 <button
-                  onClick={fetchBrainData}
+                  onClick={() => fetchBrainData(sliceIndex)}
                   className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
                 >
                   Retry

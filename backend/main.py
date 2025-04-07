@@ -154,9 +154,10 @@ async def upload_fmri(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/2d-fmri-data/{fmri_id}")
+@app.get("/api/2d-fmri-data/{fmri_id}/{slice_index}")
 async def get_2d_fmri_data(
     fmri_id: int,
+    slice_index: int,
     supabase: Client = Depends(get_public_client),
 ):
     # Fetch FMRI data record from database
@@ -186,7 +187,7 @@ async def get_2d_fmri_data(
             temp_file_name = temp_file.name
 
         # Process the file
-        slices = get_slices(temp_file_name)
+        slices = get_slices(temp_file_name, slice_index)
 
         # Clean up the temporary file after processing
         try:
