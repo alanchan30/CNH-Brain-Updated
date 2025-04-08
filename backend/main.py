@@ -63,7 +63,8 @@ ALLOWED_MIME_TYPES = {
     "application/gzip",
     "application/octet-stream",
     "application/dicom",
-    "image/dicom"
+    "image/dicom",
+    "application/x-gzip"
 }
 
 
@@ -96,8 +97,9 @@ async def upload_fmri(
             file_extension = ""
 
         mime_type = file.content_type
-
-        if file_extension not in ALLOWED_EXTENSIONS or mime_type not in ALLOWED_MIME_TYPES:
+        print(mime_type)
+        # print(str(file_extension) not in ALLOWED_EXTENSIONS, mime_type not in ALLOWED_MIME_TYPE)
+        if str(file_extension) not in ALLOWED_EXTENSIONS or mime_type not in ALLOWED_MIME_TYPES:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
