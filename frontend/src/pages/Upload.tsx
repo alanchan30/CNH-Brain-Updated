@@ -130,12 +130,15 @@ export default function Upload() {
 
               <div className="flex items-center space-x-4">
                 <label className="text-black font-bold w-32">Sex:</label>
-                <input
-                  type="text"
+                <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                   className="flex-1 p-2 border border-black-500 rounded bg-white text-black"
-                />
+                >
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
               </div>
 
               <div className="flex items-center space-x-4">
