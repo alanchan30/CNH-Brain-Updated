@@ -1,27 +1,33 @@
 import FileUpload from "@/components/ui/FileUpload";
 import Header from "@/components/ui/header";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useUser from "@/hooks/useUser";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Upload() {
   const navigate = useNavigate();
   const { user, loading, error } = useUser();
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (user) {
-      // NOTE TO JUDE AND CATHY, THIS LOGS THE USER, USE THE USER ID IN THIS TO LINK THE FMRI HISTORY TO THE USER WHEN TYING UPL THE API ROUT E-- naman
-      console.log('Current user:', {
+      console.log("Current user:", {
         id: user.id,
         email: user.email,
         lastSignIn: user.last_sign_in_at,
         metadata: user.user_metadata,
-        createdAt: user.created_at
+        createdAt: user.created_at,
       });
     }
   }, [user]);
 
-  // Show loading state while fetching user data
   if (loading) {
     return (
       <div className="h-screen flex flex-col">
@@ -33,42 +39,131 @@ export default function Upload() {
     );
   }
 
-  // Show error state if there's an error
   if (error) {
-    console.error('User fetch error:', error);
+    console.error("User fetch error:", error);
   }
 
-  const handleNext = () => {
-    console.log("Next button clicked");
-    console.log("Current user:", user); // Log user data when next is clicked
+  const handleFileChange = (selectedFile: File) => {
+    setFile(selectedFile);
+  };
+
+  const handleSubmit = async () => {
+    if (!file || !user || submitting) return;
+
+    setSubmitting(true);
+    const formData = new FormData();
+    formData.append("user_id", user.id);
+    formData.append("title", title);
+    formData.append("description", description);
+    formData.append("gender", gender);
+    formData.append("age", age);
+    formData.append("diagnosis", diagnosis);
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:8000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+      console.log("Upload response:", result);
+      console.log("Success!");
+    } catch (err) {
+      console.error("Upload error:", err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       <Header showButton redirect={() => navigate("/upload")} page="upload" />
 
-      <div className="flex flex-col h-full p-8">
+      <div className="flex flex-col h-full p-8 space-y-6">
         <div className="flex flex-col space-y-2">
           <h2 className="md:text-5xl text-2xl font-bold">Upload Brain Image</h2>
           {user && (
-            <p className="text-sm text-gray-600">
-              Logged in as: {user.email}
-            </p>
+            <p className="text-sm text-gray-600">Logged in as: {user.email}</p>
           )}
         </div>
 
-        <div className="flex flex-grow justify-center items-center">
-          <FileUpload />
+        <div className="flex justify-center items-center">
+          <FileUpload onFileSelect={handleFileChange} />
         </div>
 
-        <div className="flex justify-end">
-          <button
-            onClick={handleNext}
-            className="red-button"
-          >
-            Next
-          </button>
-        </div>
+        <Card className="w-full max-w-3xl self-center">
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <label className="text-black font-bold whitespace-nowrap text-2xl">Enter Additional Information:</label>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <label className="text-black font-bold w-32">Title:</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="flex-1 p-2 border border-black-500 rounded bg-white text-black"
+                />
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <label className="text-black font-bold w-32">Description:</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="flex-1 p-2 border border-black-500 rounded bg-white text-black"
+                />
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <label className="text-black font-bold w-32">Age:</label>
+                <input
+                  type="number"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  className="flex-1 p-2 border border-black-500 rounded bg-white text-black"
+                />
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <label className="text-black font-bold w-32">Sex:</label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="flex-1 p-2 border border-black-500 rounded bg-white text-black"
+                >
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <label className="text-black font-bold w-32">Diagnosis:</label>
+                <input
+                  type="text"
+                  value={diagnosis}
+                  onChange={(e) => setDiagnosis(e.target.value)}
+                  className="flex-1 p-2 border border-black-500 rounded bg-white text-black"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="red-button"
+                disabled={submitting}
+              >
+                {submitting ? "Submitting..." : "Submit"}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
