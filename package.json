@@ -21,7 +21,7 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1",
+    "@supabase/supabase-js": "^2.49.4",
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
     "react-dropzone": "^14.3.8"
