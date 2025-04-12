@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { useEffect, useState } from "react";
 import Header from "../components/ui/header";
-import { ThreeDimRes } from "@/components/ThreeDimRes";
 import { API_URL } from "@/components/constants";
 import { useParams } from "react-router-dom";
 import Plot from "react-plotly.js";
 import { ClipLoader } from "react-spinners";
+import ThreeDimRes from "@/components/ThreeDimRes";
 
 interface AtlasViews {
   axial: number[][];
@@ -354,10 +354,17 @@ const ResultsPage: React.FC = () => {
         </div>
         <div className="bg-white rounded-b-lg shadow-md p-4 mb-8">
           <div className="flex flex-col items-center justify-center">
-            <ThreeDimRes
+            {/* <ThreeDimRes
               width={600}
               height={600}
               // modelUrl={`${API_URL}/models/brain.obj`} // Update this URL to point to your actual brain model
+            /> */}
+
+            <ThreeDimRes
+              width={600}
+              height={600}
+              niftiUrl="/mni152.nii"
+              referenceNiftiUrl="/mni152.nii"
             />
           </div>
         </div>

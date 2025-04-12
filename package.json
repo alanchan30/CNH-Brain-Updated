@@ -21,6 +21,7 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
+    "@niivue/niivue": "^0.55.0",
     "@supabase/supabase-js": "^2.49.4",
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
