@@ -1,88 +1,74 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, useLoader } from "@react-three/drei";
+import * as THREE from "three";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js"; // Correct path
 
-interface BrainBrowserProps {
+interface BrainModelProps {
+  url: string;
+  color?: string;
+  opacity?: number;
+  scale?: [number, number, number];
+}
+
+const BrainModel: React.FC<BrainModelProps> = ({
+  url,
+  color = "gray",
+  opacity = 0.7,
+  scale = [0.1, 0.1, 0.1],
+}) => {
+  const obj = useLoader(OBJLoader, url);
+  const ref = useRef<THREE.Object3D>(null); // Explicitly type useRef
+
+  // Center and apply material
+  obj.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      child.material = new THREE.MeshStandardMaterial({
+        color,
+        transparent: true,
+        opacity,
+      });
+      child.geometry.center();
+    }
+  });
+
+  return <primitive object={obj} ref={ref} scale={scale} />;
+};
+
+interface ThreeDimResProps {
   width?: number;
   height?: number;
   modelUrl?: string;
+  referenceBrainUrl?: string;
 }
 
-declare global {
-  interface Window {
-    BrainBrowser: any;
-    THREE: any;
-  }
-}
-
-export const ThreeDimRes: React.FC<BrainBrowserProps> = ({
+const ThreeDimRes: React.FC<ThreeDimResProps> = ({
   width = 800,
   height = 600,
-  modelUrl = "../../brain.obj",
+  modelUrl = "/brain.obj",
+  referenceBrainUrl = "/reference_brain.obj",
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const viewerInitialized = useRef(false); // Track if viewer is already initialized
-
-  useEffect(() => {
-    if (viewerInitialized.current) return; // Prevent duplicate initialization
-    viewerInitialized.current = true; // Mark viewer as initialized
-
-    const loadScript = (url: string): Promise<void> => {
-      return new Promise((resolve) => {
-        const script = document.createElement("script");
-        script.src = url;
-        script.onload = () => resolve();
-        document.head.appendChild(script);
-      });
-    };
-
-    const initializeViewer = async () => {
-      if (!window.THREE) {
-        await loadScript("https://brainbrowser.cbrain.mcgill.ca/js/lib/three.r66.min.js");
-      }
-
-      if (!window.BrainBrowser) {
-        await loadScript("https://brainbrowser.cbrain.mcgill.ca/js/brainbrowser/brainbrowser.surface-viewer.min.js");
-      }
-
-      if (!window.BrainBrowser?.config) {
-        console.error("BrainBrowser is not fully loaded.");
-        return;
-      }
-
-      window.BrainBrowser.config.set(
-        "worker_dir",
-        "https://brainbrowser.cbrain.mcgill.ca/js/brainbrowser/workers/"
-      );
-
-      if (containerRef.current) {
-        window.BrainBrowser.SurfaceViewer.start(containerRef.current.id, (viewer: any) => {
-          viewer.loadModelFromURL(modelUrl, {
-            format: "wavefrontobj",
-            complete: function () {
-              console.log("Model loaded successfully");
-              viewer.setClearColor(0xffffff);
-              viewer.setCameraPosition(0, 0, 2000);
-              viewer.setView(1, 1, 1);
-            },
-            error: function (msg: string) {
-              console.error("Error loading model:", msg);
-            },
-          });
-
-          viewer.render();
-        });
-      }
-    };
-
-    initializeViewer();
-
-    return () => {
-      if (containerRef.current) {
-        containerRef.current.innerHTML = ""; // Cleanup on unmount
-      }
-    };
-  }, [modelUrl]); // Depend only on modelUrl
-
-  return <div id="brain-viewer-container" ref={containerRef} style={{ width, height }}></div>;
+  return (
+    <div style={{ width, height }}>
+      <Canvas camera={{ position: [0, 0, 200], fov: 50 }}>
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <BrainModel
+          url={modelUrl}
+          color="gray"
+          opacity={0.7}
+          scale={[0.1, 0.1, 0.1]}
+        />
+        <BrainModel
+          url={referenceBrainUrl}
+          color="blue"
+          opacity={0.3}
+          scale={[0.1, 0.1, 0.1]}
+        />
+        <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
+      </Canvas>
+    </div>
+  );
 };
 
 export default ThreeDimRes;

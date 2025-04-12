@@ -354,7 +354,11 @@ const ResultsPage: React.FC = () => {
         </div>
         <div className="bg-white rounded-b-lg shadow-md p-4 mb-8">
           <div className="flex flex-col items-center justify-center">
-            <ThreeDimRes />
+            <ThreeDimRes
+              width={600}
+              height={600}
+              // modelUrl={`${API_URL}/models/brain.obj`} // Update this URL to point to your actual brain model
+            />
           </div>
         </div>
 

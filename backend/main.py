@@ -98,7 +98,6 @@ async def upload_fmri(
 
         mime_type = file.content_type
         print(mime_type)
-        # print(str(file_extension) not in ALLOWED_EXTENSIONS, mime_type not in ALLOWED_MIME_TYPE)
         if str(file_extension) not in ALLOWED_EXTENSIONS or mime_type not in ALLOWED_MIME_TYPES:
             raise HTTPException(
                 status_code=400,
@@ -113,16 +112,10 @@ async def upload_fmri(
         # Read file contents
         file_contents = await file.read()
 
-        # Compress file contents
-        compressed_buffer = BytesIO()
-        with gzip.GzipFile(fileobj=compressed_buffer, mode="wb") as gz:
-            gz.write(file_contents)
-        compressed_data = compressed_buffer.getvalue()
-
-        # Upload file to Supabase storage
+        # Upload file to Supabase storage without additional compression
         storage_response = supabase.storage.from_("fmri-uploads").upload(
             path=unique_filename,
-            file=compressed_data,
+            file=file_contents,
             file_options={"content-type": file.content_type}
         )
 
@@ -177,31 +170,37 @@ async def get_2d_fmri_data(
         # Download file from Supabase storage
         file_bytes = supabase.storage.from_("fmri-uploads").download(file_name)
 
-        # Determine appropriate file extension
-        file_extension = ".nii"
-        if file_name.lower().endswith(".nii.gz"):
-            file_extension = ".nii.gz"
-
         # Create temporary file with appropriate extension
-        with tempfile.NamedTemporaryFile(suffix=file_extension, delete=False) as temp_file:
-            temp_file.write(file_bytes)
-            temp_file.flush()
-            temp_file_name = temp_file.name
-
-        # Process the file
-        slices = get_slices(temp_file_name, slice_index)
-
-        # Clean up the temporary file after processing
+        temp_file_name = None
         try:
-            os.unlink(temp_file_name)
-        except Exception as e:
-            print(
-                f"Warning: Could not delete temporary file {temp_file_name}: {str(e)}")
+            # Create a temporary file with the correct extension
+            suffix = '.nii.gz' if file_name.lower().endswith('.gz') else '.nii'
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+                temp_file_name = temp_file.name
 
-        return slices
+                # Write the file contents
+                temp_file.write(file_bytes)
+                temp_file.flush()
+
+            print(f"Processing file: {temp_file_name}")
+
+            # Process the file
+            slices = get_slices(temp_file_name, slice_index)
+            print("Slices processed successfully")
+            return slices
+
+        finally:
+            # Clean up the temporary file
+            if temp_file_name and os.path.exists(temp_file_name):
+                try:
+                    os.unlink(temp_file_name)
+                except Exception as e:
+                    print(
+                        f"Warning: Could not delete temporary file {temp_file_name}: {str(e)}")
+
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error retrieving file: {str(e)}")
+            status_code=500, detail=f"Error processing fMRI data: {str(e)}")
 
 
 @app.get("/api/user-fmri-history/{user_id}")

@@ -66,11 +66,22 @@ export default function Upload() {
         body: formData,
       });
 
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+
       const result = await response.json();
       console.log("Upload response:", result);
-      console.log("Success!");
+
+      // Navigate to results page with the fMRI ID
+      if (result.fmri_id) {
+        navigate(`/results/${result.fmri_id}`);
+      } else {
+        throw new Error("No fMRI ID received from server");
+      }
     } catch (err) {
       console.error("Upload error:", err);
+      // You might want to show an error message to the user here
     } finally {
       setSubmitting(false);
     }
@@ -95,7 +106,9 @@ export default function Upload() {
         <Card className="w-full max-w-3xl self-center">
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">
-              <label className="text-black font-bold whitespace-nowrap text-2xl">Enter Additional Information:</label>
+              <label className="text-black font-bold whitespace-nowrap text-2xl">
+                Enter Additional Information:
+              </label>
             </div>
 
             <div className="space-y-4">
@@ -110,7 +123,9 @@ export default function Upload() {
               </div>
 
               <div className="flex items-center space-x-4">
-                <label className="text-black font-bold w-32">Description:</label>
+                <label className="text-black font-bold w-32">
+                  Description:
+                </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
