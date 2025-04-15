@@ -4,6 +4,7 @@ import Filter from "@/assets/filter.png";
 import Search from "@/assets/search.png";
 import useUser from "@/hooks/useUser";
 import React, { useEffect, useState } from "react";
+import { useMemo } from 'react';
 import { API_URL } from "../constants";
 
 interface HistoryItem {
@@ -22,6 +23,8 @@ export default function History() {
   const [selectedItem, setSelectedItem] = useState<HistoryItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useUser();
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,6 +52,48 @@ export default function History() {
     setIsModalOpen(false);
     setSelectedItem(null);
   };
+  const filteredData = useMemo(() => {
+    if (sortOrder === null) return data;
+  
+    return [...data].sort((a, b) => {
+      const isANormal = a.result.toLowerCase() === "normal";
+      const isBNormal = b.result.toLowerCase() === "normal";
+  
+      if (sortOrder === "asc") {
+        if (isANormal && !isBNormal) {
+          return -1
+        } else {
+        if (!isANormal && isBNormal) {
+          return 1
+        } else {
+          return 0
+        }
+      }
+      } else {
+        if (!isANormal && isBNormal) {
+          return -1
+        } else {
+        if (isANormal && !isBNormal) {
+          return 1
+        } else {
+          return 0
+        }
+      };
+      }
+    });
+  }, [data, sortOrder]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
 
   return (
     <div className="history-page">
@@ -59,9 +104,21 @@ export default function History() {
             <img className="filter-search" src={Search} alt="search" />
             <input className="filter-input" />
             <img className="filter-send" src={Plane} alt="plane" />
+          </div >
+          <div className="filter-container">
+          <img 
+          className="filter-filter" 
+          src={Filter} 
+          alt="filter" 
+          onClick={() => setIsFilterOpen((prev) => !prev)}
+          />
+          {isFilterOpen && (
+            <div className="filter-dropdown">
+            <button onClick={() => setSortOrder("asc")}>Diagnosis: Normal First</button>
+            <button onClick={() => setSortOrder("desc")}>Diagnosis: Not Normal First</button>
           </div>
-
-          <img className="filter-filter" src={Filter} alt="filter" />
+          )}
+          </div>
         </div>
       </div>
 
@@ -73,7 +130,7 @@ export default function History() {
         </div>
 
         <div className="table-data">
-          {data.length === 0 ? (
+          {filteredData.length === 0 ? (
             <div
               className="no-data-message"
               style={{ textAlign: "center", padding: "2rem", color: "#666" }}
@@ -81,7 +138,7 @@ export default function History() {
               No history available yet. Upload an fMRI scan to get started!
             </div>
           ) : (
-            data.map((item) => (
+            currentItems.map((item) => (
               <div className="table-row" key={item.id}>
                 <p className="table-cell">{item.name}</p>
                 <p className="table-cell">{item.date}</p>
@@ -96,6 +153,29 @@ export default function History() {
           )}
         </div>
 
+        {filteredData.length > 0 && (
+          <div className="pagination">
+          <button 
+            disabled={currentPage === 1} 
+            onClick={() => handlePageChange(currentPage - 1)}
+          >
+            Previous
+          </button>
+
+          {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              key={index}
+              onClick={() => handlePageChange(index + 1)}
+            >
+              {index + 1}
+            </button>
+          ))}
+          <button 
+            disabled={currentPage === totalPages} 
+            onClick={() => handlePageChange(currentPage + 1)}
+          >
+            Next
+          </button>
         <div className="table-footer"></div>
         <div>
           {isModalOpen && selectedItem && (
@@ -114,6 +194,7 @@ export default function History() {
           )}
         </div>
       </div>
+        )}</div>
     </div>
   );
 }

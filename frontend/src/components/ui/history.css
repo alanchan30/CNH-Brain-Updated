@@ -27,6 +27,47 @@
 .filter-filter {
   width: 24px;
   height: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.filter-filter:hover {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+  background-color: rgba(255, 255, 255, 0.2)
+}
+
+.filter-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  top: 100%;
+  left: 0;
+  margin-top: 2vh;
+  z-index: 1000;
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.filter-dropdown button {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.filter-dropdown button:hover {
+  background-color: #f0f0f0;
 }
 
 .filter-bar {
@@ -107,3 +148,34 @@
   border: none;
   cursor: pointer;
 }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 8px 16px;
+  margin: 0 5px;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.pagination button:hover {
+  background-color: #ddd;
+}
+
+.pagination button:disabled {
+  background-color: #e0e0e0;
+  cursor: not-allowed;
+}
+
+.pagination button.active {
+  font-weight: bold;
+  background-color: #007bff;
+  color: white;
+}
+
