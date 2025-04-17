@@ -40,6 +40,8 @@ const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
   const [brainData, setBrainData] = useState<BrainData | null>(null);
   const [sliceIndex, setSliceIndex] = useState<number>(94);
+  const [fileUrl, setFileUrl] = useState<string>("");
+  const [fileName, setFileName] = useState<string>("");
   const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(94);
   const [maxSliceIndex, setMaxSliceIndex] = useState<number>(100);
   const [dataLoading, setDataLoading] = useState<boolean>(true);
@@ -56,6 +58,17 @@ const ResultsPage: React.FC = () => {
     setMaxSliceIndex(data.max_index);
   };
 
+  const fetch3DBrainData = async () => {
+    const response = await fetch(`${API_URL}/3d-fmri-file/${id}/`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch brain data");
+    }
+    const data = await response.json();
+    setFileUrl(`${API_URL}${data.url}`);
+    setFileName(data.filename)
+  };
+
+
   useEffect(() => {
     if (!id) {
       navigate("/404");
@@ -67,6 +80,18 @@ const ResultsPage: React.FC = () => {
       navigate("/login");
     }
   }, [authLoading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    fetch3DBrainData()
+
+    return () => {
+      if (fileName) {
+        fetch(`${API_URL}/delete-temp-file/${fileName}`, {
+          method: "DELETE"
+        });
+      }
+    };
+  }, [id])
 
   useEffect(() => {
     fetchBrainData(sliceIndex);
@@ -363,8 +388,8 @@ const ResultsPage: React.FC = () => {
             <ThreeDimRes
               width={600}
               height={600}
-              niftiUrl="/mni152.nii"
-              referenceNiftiUrl="/mni152.nii"
+              niftiUrl={fileUrl}
+              referenceNiftiUrl={fileUrl}
             />
           </div>
         </div>

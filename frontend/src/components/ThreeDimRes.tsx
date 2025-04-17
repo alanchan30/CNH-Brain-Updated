@@ -12,8 +12,8 @@ interface NiftiViewerProps {
 const ThreeDimRes: React.FC<NiftiViewerProps> = ({
   width = 800,
   height = 600,
-  niftiUrl = "/mni152.nii", // Using the file from public directory
-  referenceNiftiUrl = "/mni152.nii", // Using the same file as reference
+  niftiUrl, // Using the file from public directory
+  referenceNiftiUrl, // Using the same file as reference
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const niivueRef = useRef<Niivue | null>(null);
@@ -41,14 +41,14 @@ const ThreeDimRes: React.FC<NiftiViewerProps> = ({
     // Load volumes with proper configuration
     const volumes = [
       {
-        url: referenceNiftiUrl,
+        url: referenceNiftiUrl as string,
         colormap: "gray", // Grayscale for reference brain
         opacity: 0.5, // Semi-transparent
         cal_min: 0, // Minimum intensity
         cal_max: 100, // Maximum intensity
       },
       {
-        url: niftiUrl,
+        url: niftiUrl as string,
         colormap: "red", // Highlight your scan in red
         opacity: 0.8,
         cal_min: 0,
