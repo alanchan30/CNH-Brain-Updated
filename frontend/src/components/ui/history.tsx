@@ -14,7 +14,7 @@ interface HistoryItem {
   gender: string;
   age: number,
   diagnosis: string,
-  result: string;
+  fmri_path: string;
 }
 
 interface HistoryResponse {
@@ -68,8 +68,8 @@ export default function History() {
     if (sortOrder === null) return data;
   
     return [...data].sort((a, b) => {
-      const isANormal = a.result.toLowerCase() === "normal";
-      const isBNormal = b.result.toLowerCase() === "normal";
+      const isANormal = a.fmri_path.toLowerCase() === "normal";
+      const isBNormal = b.fmri_path.toLowerCase() === "normal";
   
       if (sortOrder === "asc") {
         if (isANormal && !isBNormal) {
@@ -287,8 +287,8 @@ export default function History() {
               <p><span className="font-medium">Name:</span> {selectedItem.fmri_id}</p>
               <p><span className="font-medium">Date:</span> {selectedItem.date}</p>
               <p><span className="font-medium">Result:</span> 
-                <span className={selectedItem.result.toLowerCase() === "normal" ? "text-green-600" : "text-red-600"}>
-                  {selectedItem.result}
+                <span className={selectedItem.fmri_path.toLowerCase() === "normal" ? "text-green-600" : "text-red-600"}>
+                  {selectedItem.fmri_id}
                 </span>
               </p>
             </div>

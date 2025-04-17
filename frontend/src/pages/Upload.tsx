@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useUser from "@/hooks/useUser";
 import { Card, CardContent } from "@/components/ui/card";
+import { API_URL } from "@/components/constants";
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export default function Upload() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:8000/api/upload", {
+      const response = await fetch(`${API_URL}/upload`, {
         method: "POST",
         body: formData,
       });
