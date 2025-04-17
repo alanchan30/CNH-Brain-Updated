@@ -3,7 +3,7 @@ import Plane from "@/assets/plane.png";
 import Filter from "@/assets/filter.png";
 import Search from "@/assets/search.png";
 import useUser from "@/hooks/useUser";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useMemo } from 'react';
 import { API_URL } from "../constants";
 
@@ -25,6 +25,8 @@ export default function History() {
   const { user } = useUser();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,6 +85,22 @@ export default function History() {
     });
   }, [data, sortOrder]);
 
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      dropdownRef.current &&
+      !dropdownRef.current.contains(event.target as Node)
+    ) {
+      setIsFilterOpen(false)
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -105,7 +123,7 @@ export default function History() {
             <input className="filter-input" />
             <img className="filter-send" src={Plane} alt="plane" />
           </div >
-          <div className="filter-container">
+          <div ref={dropdownRef} className="filter-container">
           <img 
           className="filter-filter" 
           src={Filter} 
