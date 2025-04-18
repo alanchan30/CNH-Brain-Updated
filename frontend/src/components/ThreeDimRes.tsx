@@ -38,17 +38,22 @@ const ThreeDimRes: React.FC<NiftiViewerProps> = ({
     nv.attachToCanvas(canvasRef.current);
     niivueRef.current = nv;
 
+    if (!niftiUrl || !referenceNiftiUrl) {
+      console.error("No valid file URLs provided to Niivue");
+      return;
+    }
+
     // Load volumes with proper configuration
     const volumes = [
       {
-        url: referenceNiftiUrl as string,
+        url: referenceNiftiUrl,
         colormap: "gray", // Grayscale for reference brain
         opacity: 0.5, // Semi-transparent
         cal_min: 0, // Minimum intensity
         cal_max: 100, // Maximum intensity
       },
       {
-        url: niftiUrl as string,
+        url: niftiUrl,
         colormap: "red", // Highlight your scan in red
         opacity: 0.8,
         cal_min: 0,

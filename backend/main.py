@@ -239,13 +239,24 @@ async def get_3d_fmri_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing fMRI data: {str(e)}")
 
-@app.delete("/api/delete-temp-file/{filename}")
-def delete_temp_file(filename: str):
-    path = os.path.join("nifti_files", filename)
-    if os.path.exists(path):
-        os.remove(path)
-        return {"detail": "Deleted"}
-    raise HTTPException(404, "Not found")
+@app.delete("/api/delete-temp-files/")
+def delete_temp_files():
+    directory = "nifti_files"
+    deleted_files = []
+
+    if not os.path.exists(directory):
+        raise HTTPException(404, "Directory not found")
+
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                deleted_files.append(filename)
+        except Exception as e:
+            print(f"Failed to delete {file_path}: {e}")
+
+    return {"detail": f"Deleted {len(deleted_files)} files", "files": deleted_files}
     
 
 @app.get("/api/user-fmri-history/{user_id}")

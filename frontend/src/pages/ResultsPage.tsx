@@ -47,6 +47,20 @@ const ResultsPage: React.FC = () => {
   const [dataLoading, setDataLoading] = useState<boolean>(true);
   const { id } = useParams();
 
+  const deleteNiftiTemp = async() => {
+    try {
+      const res = await fetch(`${API_URL}/delete-temp-files/`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete temporary file");
+
+      console.log("Temp files deleted");
+    } catch (err) {
+      console.error("Failed to delete file before redirecting:", err);
+    }
+  }
+
   const fetchBrainData = async (index: number) => {
     const response = await fetch(`${API_URL}/2d-fmri-data/${id}/${index}`);
     if (!response.ok) {
@@ -71,26 +85,24 @@ const ResultsPage: React.FC = () => {
 
   useEffect(() => {
     if (!id) {
+      if (fileName) {
+        deleteNiftiTemp()
+      }
       navigate("/404");
     }
   }, [id, navigate]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
+      if (fileName) {
+        deleteNiftiTemp()
+      }
       navigate("/login");
     }
   }, [authLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
     fetch3DBrainData()
-
-    return () => {
-      if (fileName) {
-        fetch(`${API_URL}/delete-temp-file/${fileName}`, {
-          method: "DELETE"
-        });
-      }
-    };
   }, [id])
 
   useEffect(() => {
@@ -120,9 +132,10 @@ const ResultsPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       <Header
-        redirect={() => navigate("/landing")}
+        redirect={() => ("/landing")}
         showButton={true}
         page="results"
+        fileName={fileName}
       />
       <div className="p-6 overflow-y-auto">
         <div className="mb-6">
