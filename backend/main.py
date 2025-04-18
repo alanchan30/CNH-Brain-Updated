@@ -178,7 +178,15 @@ async def get_2d_fmri_data(
 
     try:
         # Download file from Supabase storage
+        if not file_bytes:
+            raise HTTPException(status_code=404, detail="File not found in Supabase storage")
         file_bytes = supabase.storage.from_("fmri-uploads").download(file_name)
+
+        if not file_bytes or len(file_bytes) < 1000:
+            raise HTTPException(status_code=404, detail="Downloaded file is too small or empty")
+
+        print(f"Downloaded file size: {len(file_bytes)} bytes")
+
 
         # Create temporary file with appropriate extension
         temp_file_name = None
@@ -195,9 +203,14 @@ async def get_2d_fmri_data(
             print(f"Processing file: {temp_file_name}")
 
             # Process the file
-            slices = get_slices(temp_file_name, slice_index)
-            print("Slices processed successfully")
-            return slices
+            try:
+                print(f"Calling get_slices with: {temp_file_name}, slice_index={slice_index}")
+                slices = get_slices(temp_file_name, slice_index)
+                print("get_slices returned successfully")
+            except Exception as e:
+                print(f"get_slices() failed: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error in get_slices(): {str(e)}")
+
 
         finally:
             # Clean up the temporary file
