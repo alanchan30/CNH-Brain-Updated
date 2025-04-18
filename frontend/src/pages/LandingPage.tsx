@@ -61,7 +61,7 @@ const LandingPage = () => {
             <h2 className="text-lg font-semibold mt-2">
               Initiate New Brain Scan
             </h2>
-            <button className="bg-red-500 hover:bg-red-600 transition-colors text-white px-6 py-3 rounded mt-4 flex items-center justify-center">
+            <button className="!bg-red-500 hover:!bg-red-600 transition-colors text-white px-6 py-3 rounded mt-4 flex items-center justify-center">
               Upload
             </button>
           </div>
@@ -75,7 +75,7 @@ const LandingPage = () => {
             <h2 className="text-lg font-semibold mt-2">
               Access Previous Brain Scan
             </h2>
-            <button className="bg-red-500 hover:bg-red-600 transition-colors text-white px-6 py-3 rounded mt-4 flex items-center justify-center">
+            <button className="!bg-red-500 hover:!bg-red-600 transition-colors text-white px-6 py-3 rounded mt-4 flex items-center justify-center">
               History
             </button>
           </div>

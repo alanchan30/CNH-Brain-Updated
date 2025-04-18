@@ -213,7 +213,7 @@ export default function History() {
                 <div className="col-span-3 px-2 flex justify-center">
                   <button
                     onClick={() => handleView(item)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md transition-colors text-sm whitespace-nowrap"
+                    className="!bg-blue-500 hover:!bg-blue-600 text-white px-3 py-1 rounded-md transition-colors text-sm whitespace-nowrap"
                   >
                     View Results
                   </button>

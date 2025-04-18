@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { API_URL } from "@/components/constants";
 import { supabase } from "./supabaseClient";
-import { AuthResponse } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 
 interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {

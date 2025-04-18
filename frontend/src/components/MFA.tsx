@@ -387,7 +387,7 @@ export function EnrollMFA({
           <div className="flex flex-col gap-3">
             <Button
               onClick={onEnableClicked}
-              className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+              className="w-full h-12 text-base !bg-blue-600 !hover:bg-blue-700 text-white transition-colors duration-200"
               disabled={isVerifying || verifyCode.length !== 6}
             >
               {isVerifying ? (
@@ -671,7 +671,7 @@ export function AuthMFA({
           <div className="flex flex-col gap-3 mt-2">
             <Button
               onClick={onSubmitClicked}
-              className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+              className="w-full h-12 text-base !bg-blue-600 hover:!bg-blue-700 text-white transition-colors duration-200"
               disabled={isVerifying || verifyCode.length !== 6}
             >
               {isVerifying ? (

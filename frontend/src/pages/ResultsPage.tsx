@@ -435,14 +435,14 @@ const ResultsPage: React.FC = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 mb-6">
           <button
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium shadow-md transition duration-200 flex items-center justify-center"
+            className="!bg-red-600 hover:!bg-red-700 text-white px-6 py-3 rounded-lg font-medium shadow-md transition duration-200 flex items-center justify-center"
             onClick={() => setShowModal(true)}
           >
             View Anomaly Results
           </button>
 
           <button
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium shadow-md transition duration-200 flex items-center justify-center"
+            className="!bg-green-600 hover:!bg-green-700 text-white px-6 py-3 rounded-lg font-medium shadow-md transition duration-200 flex items-center justify-center"
             onClick={() => {
               /* Handle download/export */
               console.log("Download results");
@@ -466,7 +466,7 @@ const ResultsPage: React.FC = () => {
                     <h2 className="text-white text-2xl font-bold">Anomaly Detection Results</h2>
                     <button
                       onClick={() => setShowModal(false)}
-                      className="text-white hover:text-gray-200 focus:outline-none"
+                      className="!bg-gray-500 !text-white hover:!text-gray-200 focus:outline-none"
                     >
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -526,10 +526,10 @@ const ResultsPage: React.FC = () => {
                 </div>
         
                 {/* Modal Footer */}
-                <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                <div className="!bg-gray-50 px-6 py-4 flex justify-end">
                   <button
                     onClick={() => setShowModal(false)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200"
+                    className="!bg-gray-600 hover:!bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200"
                   >
                     Close
                   </button>
