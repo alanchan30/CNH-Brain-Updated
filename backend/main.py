@@ -15,6 +15,7 @@ from supabase import create_client, Client
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import tempfile
 from typing import Optional
+from model import predict_from_nifti
 
 load_dotenv()
 
@@ -113,6 +114,13 @@ async def upload_fmri(
 
         # Read file contents
         file_contents = await file.read()
+        print(type (file_contents))
+        try:
+            model_result = predict_from_nifti(file_contents)
+            print(model_result)
+        except Exception as e:
+            print("Error in predict_from_nifti:", e)
+            raise
 
         # Upload file to Supabase storage without additional compression
         storage_response = supabase.storage.from_("fmri-uploads").upload(
