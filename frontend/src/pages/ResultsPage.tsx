@@ -42,10 +42,26 @@ const ResultsPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [brainData, setBrainData] = useState<BrainData | null>(null);
   const [sliceIndex, setSliceIndex] = useState<number>(94);
+  const [fileUrl, setFileUrl] = useState<string>("");
+  const [fileName, setFileName] = useState<string>("");
   const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(94);
   const [maxSliceIndex, setMaxSliceIndex] = useState<number>(100);
   const [dataLoading, setDataLoading] = useState<boolean>(true);
   const { id } = useParams();
+
+  const deleteNiftiTemp = async() => {
+    try {
+      const res = await fetch(`${API_URL}/delete-temp-files/`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete temporary file");
+
+      console.log("Temp files deleted");
+    } catch (err) {
+      console.error("Failed to delete file before redirecting:", err);
+    }
+  }
 
   const fetchBrainData = async (index: number) => {
     const response = await fetch(`${API_URL}/2d-fmri-data/${id}/${index}`);
@@ -58,35 +74,56 @@ const ResultsPage: React.FC = () => {
     setMaxSliceIndex(data.max_index);
   };
 
+
   const fetchPrediction = async() => {
     const response = await fetch(`${API_URL}/model-prediction/${id}/`);
     if (!response.ok) {
-      throw new Error("Failed to fetch brain data");
+      throw new Error("Failed to fetch model prediction");
     }
     const data = await response.json();
     const model_result = data.model_result;
-    console.log(typeof model_result)
 
     if (model_result === 1) {
-      console.log("one")
       setPrediction("Probable to be Austistic")
     } else if (model_result === 0) {
-      console.log("zero")
       setPrediction("Probable to be Neurotypical")
     }
   }
 
+  const fetch3DBrainData = async () => {
+    const response = await fetch(`${API_URL}/3d-fmri-file/${id}/`);
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch brain data");
+    }
+    const data = await response.json();
+
+    setFileUrl(`${API_URL}${data.url}`);
+    setFileName(data.filename)
+  };
+
+
   useEffect(() => {
     if (!id) {
+      if (fileName) {
+        deleteNiftiTemp()
+      }
       navigate("/404");
     }
   }, [id, navigate]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
+      if (fileName) {
+        deleteNiftiTemp()
+      }
       navigate("/login");
     }
   }, [authLoading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    fetch3DBrainData()
+  }, [id])
 
   useEffect(() => {
     fetchBrainData(sliceIndex);
@@ -120,9 +157,10 @@ const ResultsPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       <Header
-        redirect={() => navigate("/landing")}
+        redirect={() => ("/landing")}
         showButton={true}
         page="results"
+        fileName={fileName}
       />
       <div className="p-6 overflow-y-auto">
         <div className="mb-6">
@@ -388,8 +426,8 @@ const ResultsPage: React.FC = () => {
             <ThreeDimRes
               width={600}
               height={600}
-              niftiUrl="/mni152.nii"
-              referenceNiftiUrl="/mni152.nii"
+              niftiUrl={fileUrl}
+              referenceNiftiUrl={fileUrl}
             />
           </div>
         </div>
