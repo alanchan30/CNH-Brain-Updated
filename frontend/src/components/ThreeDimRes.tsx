@@ -12,8 +12,8 @@ interface NiftiViewerProps {
 const ThreeDimRes: React.FC<NiftiViewerProps> = ({
   width = 800,
   height = 600,
-  niftiUrl = "/mni152.nii", // Using the file from public directory
-  referenceNiftiUrl = "/mni152.nii", // Using the same file as reference
+  niftiUrl, // Using the file from public directory
+  referenceNiftiUrl, // Using the same file as reference
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const niivueRef = useRef<Niivue | null>(null);
@@ -37,6 +37,11 @@ const ThreeDimRes: React.FC<NiftiViewerProps> = ({
     // Attach to canvas
     nv.attachToCanvas(canvasRef.current);
     niivueRef.current = nv;
+
+    if (!niftiUrl || !referenceNiftiUrl) {
+      console.error("No valid file URLs provided to Niivue");
+      return;
+    }
 
     // Load volumes with proper configuration
     const volumes = [

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from src.plotlyViz.controller import get_slices
 from supabase import create_client, Client
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 import tempfile
 from typing import Optional
 
@@ -39,6 +40,8 @@ app.add_middleware(
 
 # Include the auth router
 app.include_router(auth_router, prefix="/api", tags=["authentication"])
+
+app.mount("/api/nifti_files", StaticFiles(directory="nifti_files"), name="nifti_files")
 
 # Auth dependency
 security = HTTPBearer()
@@ -202,6 +205,59 @@ async def get_2d_fmri_data(
         raise HTTPException(
             status_code=500, detail=f"Error processing fMRI data: {str(e)}")
 
+@app.get("/api/3d-fmri-file/{fmri_id}/")
+async def get_3d_fmri_file(
+    fmri_id: int,
+    supabase: Client = Depends(get_public_client)
+):
+    # Fetch FMRI data record from database
+    response = supabase.table("fmri_history").select(
+        "*").eq("fmri_id", fmri_id).execute()
+
+    if not response.data or len(response.data) == 0:
+        raise HTTPException(status_code=404, detail="FMRI data not found")
+
+    file_name = response.data[0]["file_link"]
+    print(f"File name: {file_name}")
+    
+    try:
+        file_bytes = supabase.storage.from_("fmri-uploads").download(file_name)
+        
+        suffix = '.nii.gz' if file_name.lower().endswith('.gz') else '.nii'
+        unique_name = f"{uuid.uuid4()}{suffix}"
+        save_path = os.path.join("nifti_files", unique_name)
+
+        with open(save_path, "wb") as f:
+            f.write(file_bytes)
+
+        # Return URL for frontend viewer (like Niivue)
+        return {
+            "url": f"/nifti_files/{unique_name}",
+            "filename": unique_name  # for cleanup if needed
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing fMRI data: {str(e)}")
+
+@app.delete("/api/delete-temp-files/")
+def delete_temp_files():
+    directory = "nifti_files"
+    deleted_files = []
+
+    if not os.path.exists(directory):
+        raise HTTPException(404, "Directory not found")
+
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                deleted_files.append(filename)
+        except Exception as e:
+            print(f"Failed to delete {file_path}: {e}")
+
+    return {"detail": f"Deleted {len(deleted_files)} files", "files": deleted_files}
+    
 
 @app.get("/api/user-fmri-history/{user_id}")
 async def get_user_fmri_history(
