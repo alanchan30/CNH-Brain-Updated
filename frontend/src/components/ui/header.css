@@ -1,17 +1,22 @@
 :root {
-  --header-text: 24px;
+  --header-text: 2.75vh;
   --header-button-w: 170px;
   --header-padding: 8px 16px;
   --logo-size: 64px;
-  --account-text: 12px;
+  --account-text: 1.38vh;
+  --upload-history-padding: 1rem;
+  --header-row-padding: 0.5rem 1.5rem;
   @media (max-width: 500px) {
-    --header-text: 12px;
+    --header-text: 1.8vh;
     --header-button-w: 100px;
     --logo-size: 32px;
     --header-padding: 4px 4px;
-    --account-text: 8px;
+    --account-text: 1.2vh;
+    --upload-history-padding: 0.5rem;
+    --header-row-padding: 0.5rem;
   }
 }
+
 
 .header {
   background-color: var(--blue);
@@ -19,7 +24,8 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 1.5rem;
+  padding: var(--header-row-padding);
+  gap: 0.3rem;
   min-height: 80px;
 }
 
@@ -77,7 +83,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--upload-history-padding);
   transition: background-color 0.2s;
 }
 
@@ -92,7 +98,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--upload-history-padding);
   transition: background-color 0.2s;
 }
 

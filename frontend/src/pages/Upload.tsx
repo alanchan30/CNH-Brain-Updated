@@ -62,11 +62,7 @@ export default function Upload() {
     formData.append("file", file);
 
     try {
-      const token = localStorage.getItem("access_token");
       const response = await fetch(`${API_URL}/upload`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         method: "POST",
         body: formData,
       });

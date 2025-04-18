@@ -1,6 +1,5 @@
 import Header from "@/components/ui/header";
 import History from "@/components/ui/history";
-import React from "react";
 import { useNavigate } from "react-router-dom";
 
 const HistoryPage = () => {
