@@ -50,6 +50,7 @@ class FMRI_History(Base):
     gender: Mapped[str] = mapped_column(String(255))
     age: Mapped[int] = mapped_column(Integer)
     diagnosis: Mapped[str] = mapped_column(String(255))
+    model_result: Mapped[int] = mapped_column(Integer)
 
 
 # This function is used for direct table creation without migrations

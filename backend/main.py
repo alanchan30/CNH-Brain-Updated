@@ -1,4 +1,6 @@
 import httpx
+import joblib
+import nilearn
 from io import BytesIO
 import gzip
 import uuid
@@ -14,6 +16,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 import tempfile
 from typing import Optional
+from model import predict_from_nifti
 
 load_dotenv()
 
@@ -114,39 +117,47 @@ async def upload_fmri(
 
         # Read file contents
         file_contents = await file.read()
+        print(type (file_contents))
+        try:
+            model_result = predict_from_nifti(file_contents, file.filename)
 
-        # Upload file to Supabase storage without additional compression
-        storage_response = supabase.storage.from_("fmri-uploads").upload(
-            path=unique_filename,
-            file=file_contents,
-            file_options={"content-type": file.content_type}
-        )
+            # Upload file to Supabase storage without additional compression
+            storage_response = supabase.storage.from_("fmri-uploads").upload(
+                path=unique_filename,
+                file=file_contents,
+                file_options={"content-type": file.content_type}
+            )
 
-        # Insert record into database
-        fmri_data = {
-            "user_id": user_id,
-            "title": title,
-            "description": description,
-            "gender": gender,
-            "age": age,
-            "diagnosis": diagnosis,
-            "file_link": unique_filename
-        }
-
-        # Insert into the fmri_history table
-        result = supabase.table("fmri_history").insert(fmri_data).execute()
-
-        # Get the inserted record's ID
-        if result.data and len(result.data) > 0:
-            fmri_id = result.data[0]['fmri_id']
-            return {
-                "message": "File uploaded successfully",
-                "fmri_id": fmri_id,
-                "file_path": unique_filename
+            # Insert record into database
+            fmri_data = {
+                "user_id": user_id,
+                "title": title,
+                "description": description,
+                "gender": gender,
+                "age": age,
+                "diagnosis": diagnosis,
+                "model_result": model_result,
+                "file_link": unique_filename
             }
-        else:
-            raise HTTPException(
-                status_code=500, detail="Failed to retrieve inserted record ID")
+
+            # Insert into the fmri_history table
+            result = supabase.table("fmri_history").insert(fmri_data).execute()
+            
+            # Get the inserted record's ID
+            if result.data and len(result.data) > 0:
+                fmri_id = result.data[0]['fmri_id']
+                return {
+                    "message": "File uploaded successfully",
+                    "fmri_id": fmri_id,
+                    "file_path": unique_filename,
+                }
+            else:
+                raise HTTPException(
+                    status_code=500, detail="Failed to retrieve inserted record ID")
+        except Exception as e:
+            print("Error in predict_from_nifti:", e)
+            raise
+
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -271,6 +282,19 @@ async def get_user_fmri_history(
         return {"history": []}
 
     return {"history": response.data}
+
+@app.get("/api/model-prediction/{fmri_id}")
+def get_model_result(
+    fmri_id: int, 
+    supabase: Client = Depends(get_public_client),
+):
+    response = supabase.table("fmri_history").select(
+        "model_result").eq("fmri_id", fmri_id).single().execute()
+    
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Model result not found")
+
+    return {"model_result": response.data["model_result"]}
 
 # Run the application if the script is executed directly
 if __name__ == "__main__":
