@@ -38,6 +38,8 @@ const SLICE_BATCH_SIZE = 5; // Number of slices to fetch at once
 const ResultsPage: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [prediction, setPrediction] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
   const [brainData, setBrainData] = useState<BrainData | null>(null);
   const [sliceIndex, setSliceIndex] = useState<number>(94);
   const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(94);
@@ -56,6 +58,24 @@ const ResultsPage: React.FC = () => {
     setMaxSliceIndex(data.max_index);
   };
 
+  const fetchPrediction = async() => {
+    const response = await fetch(`${API_URL}/model-prediction/${id}/`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch brain data");
+    }
+    const data = await response.json();
+    const model_result = data.model_result;
+    console.log(typeof model_result)
+
+    if (model_result === 1) {
+      console.log("one")
+      setPrediction("Probable to be Austistic")
+    } else if (model_result === 0) {
+      console.log("zero")
+      setPrediction("Probable to be Neurotypical")
+    }
+  }
+
   useEffect(() => {
     if (!id) {
       navigate("/404");
@@ -71,6 +91,11 @@ const ResultsPage: React.FC = () => {
   useEffect(() => {
     fetchBrainData(sliceIndex);
   }, [id, sliceIndex]);
+
+  useEffect(() => {
+    fetchPrediction()
+    console.log(prediction)
+  }, [id])
 
   const transpose = (matrix: number[][]): number[][] => {
     if (!matrix || matrix.length === 0) return [];
@@ -373,10 +398,7 @@ const ResultsPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 mb-6">
           <button
             className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium shadow-md transition duration-200 flex items-center justify-center"
-            onClick={() => {
-              /* Handle anomaly results view */
-              console.log("View anomaly results");
-            }}
+            onClick={() => setShowModal(true)}
           >
             View Anomaly Results
           </button>
@@ -391,6 +413,93 @@ const ResultsPage: React.FC = () => {
             Export Results
           </button>
         </div>
+        {prediction && showModal && (
+          <>
+            <div className="fixed inset-0 z-40" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+
+            </div>
+            
+            {/* Content of the modal, positioned on top of the backdrop layer */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 overflow-hidden pointer-events-auto">
+                {/* Modal Header */}
+                <div className="w-full bg-blue-600 p-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-white text-2xl font-bold">Anomaly Detection Results</h2>
+                    <button
+                      onClick={() => setShowModal(false)}
+                      className="text-white hover:text-gray-200 focus:outline-none"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+        
+                {/* Modal Body */}
+                <div className="p-6">
+                  {/* Prediction Result */}
+                  <div className="mb-6">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-3">Prediction Result</h3>
+                    <div className={`p-5 rounded-lg text-center ${
+                      prediction.includes("Autism") 
+                        ? 'bg-red-50 border border-red-200' 
+                        : 'bg-green-50 border border-green-200'
+                    }`}>
+                      <p className={`text-xl font-bold ${
+                        prediction.includes("Autism") 
+                          ? 'text-red-700' 
+                          : 'text-green-700'
+                      }`}>
+                        {prediction}
+                      </p>
+                    </div>
+                  </div>
+        
+                  {/* Medical Disclaimer */}
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded mb-6">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-yellow-800">
+                          Disclaimer
+                        </h3>
+                        <div className="mt-2 text-sm text-yellow-700">
+                          <p>
+                            This analysis is provided for informational purposes only and should not be used as a substitute for professional medical advice, diagnosis, or treatment. Model results may not always be accurate or complete. Please consult with a qualified healthcare professional for proper evaluation and diagnosis.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+        
+                  {/* Additional Information */}
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h3 className="text-lg font-medium text-blue-800 mb-2">Next Steps</h3>
+                    <p className="text-blue-700">
+                      For optimal diagnosis, we recommend discussing these results with a qualified healthcare professional who can provide a comprehensive evaluation.
+                    </p>
+                  </div>
+                </div>
+        
+                {/* Modal Footer */}
+                <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

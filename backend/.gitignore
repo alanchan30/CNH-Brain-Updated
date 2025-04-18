@@ -6,3 +6,6 @@ node_modules
 ./env
 venv
 .venv
+
+nilearn_cache/
+__pycache__/

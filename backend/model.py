@@ -10,16 +10,31 @@ import tempfile
 import pathlib as Path
 import gzip
 
-def predict_from_nifti(file_content: bytes):
-    with gzip.GzipFile(fileobj=BytesIO(file_content)) as gz:
-        uncompressed_nifti_bytes = gz.read()
+def predict_from_nifti(file_content: bytes, original_filename: str):
+    print("FIle content", type(file_content))
     
-    file_like = BytesIO(uncompressed_nifti_bytes)
+    # Determine suffix from original filename
+    _, ext = os.path.splitext(original_filename)
+    suffix = ext if ext in ['.nii', '.gz', '.nii.gz'] else '.nii'
 
-    fmri = nib.Nifti1Image.from_file_map({
-        'header': nib.FileHolder(fileobj=file_like),
-        'image': nib.FileHolder(fileobj=file_like)
-    })
+    # Handle double extensions like .nii.gz
+    if original_filename.endswith(".nii.gz"):
+        suffix = ".nii.gz"
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(file_content)
+        tmp_path = tmp.name
+
+    try:
+        fmri = nib.load(tmp_path)
+    except Exception as e:
+        os.remove(tmp_path)
+        raise ValueError(f"Unable to load file as NIFTI or NIFTI.gz: {str(e)}")
+
+    # fmri = nib.Nifti1Image.from_file_map({
+    #     'header': nib.FileHolder(fileobj=file_like),
+    #     'image': nib.FileHolder(fileobj=file_like)
+    # })
 
     # with tempfile.NamedTemporaryFile(delete=False, suffix=".nii.gz") as temp_file:
     #     temp_file.write(file_content)
@@ -38,7 +53,6 @@ def predict_from_nifti(file_content: bytes):
 
     time_series = masker.fit_transform(fmri)
     correlation_measure = ConnectivityMeasure(kind='correlation')
-    print(type (time_series))
     correlation_matrix = correlation_measure.fit_transform([time_series])[0]
     
     correlation_matrix = (correlation_matrix + correlation_matrix.T) / 2  # Ensure symmetry
@@ -46,11 +60,16 @@ def predict_from_nifti(file_content: bytes):
     # Extract lower triangle excluding diagonal and reshape to (1, 2016)
     lower_triangular = correlation_matrix[np.tril_indices(64, k=-1)]
     reshaped_features = lower_triangular.reshape(1, -1)
-    print("HAHAHAHAHA", reshaped_features)
+    
+    # Replace NaNs with 0s
+    reshaped_features = np.nan_to_num(reshaped_features, nan=0.0, posinf=0.0, neginf=0.0)
+
     model_path = os.path.join("svm_model.pkl")
-    print(type(model_path))
+
     svm_model = joblib.load(model_path)
-    print(type(reshaped_features))
+
     model_result = svm_model.predict(reshaped_features)
-    print(type(model_result))
-    return model_result
+    
+    os.remove(tmp_path)
+    
+    return int(model_result[0])

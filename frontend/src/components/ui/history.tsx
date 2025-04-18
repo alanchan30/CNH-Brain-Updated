@@ -15,6 +15,7 @@ interface HistoryItem {
   age: number,
   diagnosis: string,
   fmri_path: string;
+  model_result: number;
 }
 
 interface HistoryResponse {
@@ -185,12 +186,13 @@ export default function History() {
         {/* Table Header */}
         <div className="grid grid-cols-12 text-white py-3 font-medium"
           style={{backgroundColor: '#007bff'}}>
-          <div className="col-span-2 px-4">ID</div>
-          <div className="col-span-2 px-2">Date</div>
-          <div className="col-span-2 px-2">Gender</div>
-          <div className="col-span-2 px-2">Age</div>
-          <div className="col-span-2 px-2">Diagnosis</div>
-          <div className="col-span-2 px-2 text-center">Results</div>
+            <div className="col-span-1 px-2 truncate">ID</div>
+            <div className="col-span-2 px-2 truncate">Date</div>
+            <div className="col-span-1 px-2 truncate">Gender</div>
+            <div className="col-span-1 px-2 truncate">Age</div>
+            <div className="col-span-2 px-2 truncate">Diagnosis</div>
+            <div className="col-span-2 px-2 truncate">Prediction</div>
+            <div className="col-span-3 px-2 text-center">View page</div>
         </div>
 
         {/* Table Body */}
@@ -202,15 +204,16 @@ export default function History() {
           ) : (
             currentItems.map((item) => (
               <div key={item.id} className="grid grid-cols-12 py-4 hover:bg-gray-50">
-                <div className="col-span-2 px-4 font-medium">{item.fmri_id}</div>
-                <div className="col-span-2 px-2 text-gray-600">{item.date}</div>
-                <div className="col-span-2 px-2 text-gray-600">{item.gender}</div>
-                <div className="col-span-2 px-2 text-gray-600">{item.age}</div>
-                <div className="col-span-2 px-2 text-gray-600">{item.diagnosis}</div>
-                <div className="col-span-2 px-2 flex justify-center">
+                <div className="col-span-1 px-2 font-medium truncate" title={String(item.fmri_id)}>{item.fmri_id}</div>
+                <div className="col-span-2 px-2 text-gray-600 truncate" title={item.date}>{item.date}</div>
+                <div className="col-span-1 px-2 text-gray-600 truncate" title={item.gender}>{item.gender}</div>
+                <div className="col-span-1 px-2 text-gray-600 truncate" title={String(item.age)}>{item.age}</div>
+                <div className="col-span-2 px-2 text-gray-600 truncate" title={item.diagnosis}>{item.diagnosis}</div>
+                <div className="col-span-2 px-2 text-gray-600 truncate" title={String(item.model_result)}>{item.model_result}</div>
+                <div className="col-span-3 px-2 flex justify-center">
                   <button
                     onClick={() => handleView(item)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded-md transition-colors"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md transition-colors text-sm whitespace-nowrap"
                   >
                     View Results
                   </button>
