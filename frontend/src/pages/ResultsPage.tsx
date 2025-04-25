@@ -48,8 +48,10 @@ const ResultsPage: React.FC = () => {
   const [maxSliceIndex, setMaxSliceIndex] = useState<number>(100);
   const [dataLoading, setDataLoading] = useState<boolean>(true);
   const { id } = useParams();
+  const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
 
-  const deleteNiftiTemp = async() => {
+
+  const deleteNiftiTemp = async () => {
     try {
       const res = await fetch(`${API_URL}/delete-temp-files/`, {
         method: "DELETE",
@@ -69,13 +71,15 @@ const ResultsPage: React.FC = () => {
       throw new Error("Failed to fetch brain data");
     }
     const data = await response.json();
+    console.log("Fetched brainData:", data);
+
     setBrainData(data);
     setDataLoading(false);
     setMaxSliceIndex(data.max_index);
   };
 
 
-  const fetchPrediction = async() => {
+  const fetchPrediction = async () => {
     const response = await fetch(`${API_URL}/model-prediction/${id}/`);
     if (!response.ok) {
       throw new Error("Failed to fetch model prediction");
@@ -204,11 +208,9 @@ const ResultsPage: React.FC = () => {
                 onMouseUp={() => setSliceIndex(displaySliceIndex)}
                 onTouchEnd={() => setSliceIndex(displaySliceIndex)}
                 style={{
-                  background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${
-                    (displaySliceIndex / maxSliceIndex) * 100
-                  }%, #E5E7EB ${
-                    (displaySliceIndex / maxSliceIndex) * 100
-                  }%, #E5E7EB 100%)`,
+                  background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(displaySliceIndex / maxSliceIndex) * 100
+                    }%, #E5E7EB ${(displaySliceIndex / maxSliceIndex) * 100
+                    }%, #E5E7EB 100%)`,
                 }}
               />
               <div
@@ -224,6 +226,16 @@ const ResultsPage: React.FC = () => {
           </div>
 
           {/* Brain view cards */}
+          {(
+            <div className="p-4 mb-4 bg-white border border-blue-200 rounded shadow-md">
+              <div className="text-lg">
+                <span className="font-bold text-blue-600 mr-2">Selected Region:</span>
+                <span className="text-gray-800">{hoveredRegion}</span>
+              </div>
+
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-center gap-4">
             {dataLoading ? (
               <div className="flex flex-col items-center justify-center w-full py-16">
@@ -249,6 +261,7 @@ const ResultsPage: React.FC = () => {
                           brainData.labels
                         ),
                         hovertemplate: "Region: %{customdata}<extra></extra>",
+
                       },
                       {
                         z: transpose(brainData.atlas.axial),
@@ -281,6 +294,15 @@ const ResultsPage: React.FC = () => {
                       displayModeBar: false,
                       responsive: true,
                     }}
+                    onHover={(event) => {
+                      console.log("Hover event:", event);
+                      const pointData = event.points?.[0]?.customdata;
+                      console.log("Custom data:", pointData);
+                      if (pointData) {
+                        setHoveredRegion(pointData as string);
+                      }
+                    }}
+
                   />
                   <h2 className="text-center text-xl font-semibold bg-gray-100 p-2">
                     Axial View
@@ -334,6 +356,13 @@ const ResultsPage: React.FC = () => {
                       displayModeBar: false,
                       responsive: true,
                     }}
+                    onHover={(event) => {
+                      const pointData = event.points?.[0]?.customdata;
+                      if (pointData) {
+                        setHoveredRegion(pointData as string);
+                      }
+                    }}
+
                   />
                   <h2 className="text-center text-xl font-semibold bg-gray-100 p-2">
                     Coronal View
@@ -387,6 +416,13 @@ const ResultsPage: React.FC = () => {
                       displayModeBar: false,
                       responsive: true,
                     }}
+                    onHover={(event) => {
+                      const pointData = event.points?.[0]?.customdata;
+                      if (pointData) {
+                        setHoveredRegion(pointData as string);
+                      }
+                    }}
+
                   />
                   <h2 className="text-center text-xl font-semibold bg-gray-100 p-2">
                     Sagittal View
@@ -456,7 +492,7 @@ const ResultsPage: React.FC = () => {
             <div className="fixed inset-0 z-40" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
 
             </div>
-            
+
             {/* Content of the modal, positioned on top of the backdrop layer */}
             <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
               <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 overflow-hidden pointer-events-auto">
@@ -474,27 +510,25 @@ const ResultsPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
-        
+
                 {/* Modal Body */}
                 <div className="p-6">
                   {/* Prediction Result */}
                   <div className="mb-6">
                     <h3 className="text-xl font-semibold text-gray-800 mb-3">Prediction Result</h3>
-                    <div className={`p-5 rounded-lg text-center ${
-                      prediction.includes("Autism") 
-                        ? 'bg-red-50 border border-red-200' 
-                        : 'bg-green-50 border border-green-200'
-                    }`}>
-                      <p className={`text-xl font-bold ${
-                        prediction.includes("Autism") 
-                          ? 'text-red-700' 
-                          : 'text-green-700'
+                    <div className={`p-5 rounded-lg text-center ${prediction.includes("Autism")
+                      ? 'bg-red-50 border border-red-200'
+                      : 'bg-green-50 border border-green-200'
                       }`}>
+                      <p className={`text-xl font-bold ${prediction.includes("Autism")
+                        ? 'text-red-700'
+                        : 'text-green-700'
+                        }`}>
                         {prediction}
                       </p>
                     </div>
                   </div>
-        
+
                   {/* Medical Disclaimer */}
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded mb-6">
                     <div className="flex">
@@ -515,7 +549,7 @@ const ResultsPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-        
+
                   {/* Additional Information */}
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <h3 className="text-lg font-medium text-blue-800 mb-2">Next Steps</h3>
@@ -524,7 +558,7 @@ const ResultsPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-        
+
                 {/* Modal Footer */}
                 <div className="!bg-gray-50 px-6 py-4 flex justify-end">
                   <button
