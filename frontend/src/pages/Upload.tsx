@@ -14,6 +14,8 @@ export default function Upload() {
   const [description, setDescription] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
+  const [atlas, setAtlas] = useState("");
+
   const [diagnosis, setDiagnosis] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -59,6 +61,7 @@ export default function Upload() {
     formData.append("gender", gender);
     formData.append("age", age);
     formData.append("diagnosis", diagnosis);
+    formData.append("atlas", atlas);
     formData.append("file", file);
 
     try {
@@ -165,6 +168,18 @@ export default function Upload() {
                   onChange={(e) => setDiagnosis(e.target.value)}
                   className="flex-1 p-2 border border-black-500 rounded bg-white text-black"
                 />
+              </div>
+              <div className="flex items-center space-x-4">
+                <label className="text-black font-bold w-32">Atlas:</label>
+                <select
+                  value={atlas}
+                  onChange={(e) => setAtlas(e.target.value)}
+                  className="flex-1 p-2 border border-black-500 rounded bg-white text-black"
+                >
+                  <option value="">Select</option>
+                  <option value="Male">Harvard</option>
+                  <option value="Female">CC200</option>
+                </select>
               </div>
             </div>
 
