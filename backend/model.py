@@ -1,9 +1,12 @@
-import joblib
+import torch
 import numpy as np
 from nilearn.input_data import NiftiLabelsMasker
 from nilearn.connectome import ConnectivityMeasure
 import nibabel as nib
 from nibabel import FileHolder, Nifti1Image
+from torch_geometric.data import Data
+from sklearn.metrics.pairwise import cosine_similarity
+from GNN import SpectralGCN
 import os
 from io import BytesIO
 import tempfile
@@ -11,7 +14,7 @@ import pathlib as Path
 import gzip
 
 def predict_from_nifti(file_content: bytes, original_filename: str):
-    print("FIle content", type(file_content))
+    print("File content", type(file_content))
     
     # Determine suffix from original filename
     _, ext = os.path.splitext(original_filename)
@@ -31,16 +34,6 @@ def predict_from_nifti(file_content: bytes, original_filename: str):
         os.remove(tmp_path)
         raise ValueError(f"Unable to load file as NIFTI or NIFTI.gz: {str(e)}")
 
-    # fmri = nib.Nifti1Image.from_file_map({
-    #     'header': nib.FileHolder(fileobj=file_like),
-    #     'image': nib.FileHolder(fileobj=file_like)
-    # })
-
-    # with tempfile.NamedTemporaryFile(delete=False, suffix=".nii.gz") as temp_file:
-    #     temp_file.write(file_content)
-    #     temp_file_path = temp_file.name
-    # fmri = nib.load(temp_file_path)
-
     atlas_path = os.path.join("template_cambridge_basc_multiscale_sym_scale064.nii.gz")
     atlas_filename = nib.load(atlas_path)
 
@@ -52,24 +45,51 @@ def predict_from_nifti(file_content: bytes, original_filename: str):
     )
 
     time_series = masker.fit_transform(fmri)
-    correlation_measure = ConnectivityMeasure(kind='correlation')
+    
+    if np.isnan(time_series).all():
+        os.remove(tmp_path)
+        raise ValueError("The time series contains only NaN values.")
+    
+    correlation_measure = ConnectivityMeasure(kind='correlation', vectorize=True, discard_diagonal=True)
     correlation_matrix = correlation_measure.fit_transform([time_series])[0]
+    correlation_matrix = correlation_matrix.reshape(1, -1)
     
-    correlation_matrix = (correlation_matrix + correlation_matrix.T) / 2  # Ensure symmetry
+    if np.isnan(correlation_matrix).all():
+        os.remove(tmp_path)
+        raise ValueError("The correlation matrix contains only NaN values.")
 
-    # Extract lower triangle excluding diagonal and reshape to (1, 2016)
-    lower_triangular = correlation_matrix[np.tril_indices(64, k=-1)]
-    reshaped_features = lower_triangular.reshape(1, -1)
     
-    # Replace NaNs with 0s
-    reshaped_features = np.nan_to_num(reshaped_features, nan=0.0, posinf=0.0, neginf=0.0)
-
-    model_path = os.path.join("svm_model.pkl")
-
-    svm_model = joblib.load(model_path)
-
-    model_result = svm_model.predict(reshaped_features)
+    features = torch.tensor(correlation_matrix).float()
     
+    if torch.isnan(features).all():
+        os.remove(tmp_path)
+        raise ValueError("The feature tensor contains only NaN values.")
+
+    N = features.size(0)
+    sim_matrix = cosine_similarity(features)
+    np.fill_diagonal(sim_matrix, 0)
+    edge_index = []
+    for i in range(N):
+        for j in np.argsort(-sim_matrix[i])[:5]:
+            edge_index.append([i, j])
+    edge_index = torch.tensor(edge_index).t().contiguous()
+
+    data = Data(x=features, edge_index=edge_index)
+
+    model = SpectralGCN(in_channels=2016, hidden_channels=128, out_channels=1, K=3)
+    model_path = os.path.join("gnn_model_weights.pt")
+
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    
+    # Perform inference with the GNN model
+    with torch.no_grad():
+        output = model(data)
+    
+    probability = torch.sigmoid(output)
+
+    prediction = (probability > 0.5).int().item()
+    print(f"Prediction: {prediction}")
     os.remove(tmp_path)
     
-    return int(model_result[0])
+    return prediction
