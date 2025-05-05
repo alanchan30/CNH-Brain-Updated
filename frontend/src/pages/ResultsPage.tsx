@@ -32,16 +32,13 @@ interface CacheItem {
   timestamp: number;
 }
 
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
-const SLICE_BATCH_SIZE = 5; // Number of slices to fetch at once
-
 const ResultsPage: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [prediction, setPrediction] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [brainData, setBrainData] = useState<BrainData | null>(null);
-  const [sliceIndex, setSliceIndex] = useState<number>(94);
+  const [sliceIndex, setSliceIndex] = useState<number>(5);
   const [fileUrl, setFileUrl] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(94);

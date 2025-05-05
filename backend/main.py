@@ -93,6 +93,7 @@ async def upload_fmri(
     age: int = Form(...),
     diagnosis: str = Form(...),
     file: UploadFile = File(...),
+    atlas: str = Form(...),
     supabase: Client = Depends(get_public_client),
 ):
     try:
@@ -137,7 +138,8 @@ async def upload_fmri(
                 "age": age,
                 "diagnosis": diagnosis,
                 "model_result": model_result,
-                "file_link": unique_filename
+                "file_link": unique_filename,
+                "atlas": atlas
             }
 
             # Insert into the fmri_history table
@@ -178,6 +180,7 @@ async def get_2d_fmri_data(
 
     fmri_data = response.data[0]
     file_name = fmri_data["file_link"]
+    atlas_name = fmri_data.get("atlas", "Harvard-Oxford") 
     print(f"File name: {file_name}")
 
     try:
@@ -199,7 +202,7 @@ async def get_2d_fmri_data(
             print(f"Processing file: {temp_file_name}")
 
             # Process the file
-            slices = get_slices(temp_file_name, slice_index)
+            slices = get_slices(temp_file_name, slice_index, atlas_name)
             print("Slices processed successfully")
             return slices
 

@@ -17,8 +17,8 @@ supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_ANON_KEY")
 supabase_service_key = os.environ.get("SUPABASE_SERVICE_KEY")
 
-# Set session duration to 1 month (in seconds)
-SESSION_EXPIRY = timedelta(days=30).total_seconds()
+# Set session duration to 7 days (in seconds)
+SESSION_EXPIRY = timedelta(days=7).total_seconds()
 
 
 supabase: Client = create_client(supabase_url, supabase_key)
@@ -97,6 +97,8 @@ async def login(request: LoginRequest):
         auth_response = supabase.auth.sign_in_with_password({
             "email": request.email,
             "password": request.password
+        }, options={
+            "session_expiry_seconds": int(SESSION_EXPIRY)
         })
 
         return {
