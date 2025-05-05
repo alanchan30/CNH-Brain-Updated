@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { API_URL } from "@/components/constants";
 import { supabase } from "./supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { storeAuthTokens, clearAuthTokens } from "@/utils/auth";
 
 interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
@@ -82,68 +83,112 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      // Try direct Supabase login which is more reliable
+      const { data: supabaseData, error: supabaseError } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
 
-      // First check if the response is ok
-      if (!response.ok) {
-        // Always try to parse error response as JSON, but have a fallback
+      // Check for authentication error
+      if (supabaseError) {
+        // If Supabase login fails, try the API login as fallback
+        console.error("Supabase login failed:", supabaseError);
+        
         try {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.detail?.message || errorData.detail || "Login failed"
-          );
-        } catch (jsonError) {
-          if (response.statusText.includes("Unauthorized")) {
-            throw new Error("Invalid credentials or account not verified");
-          } else {
-            throw new Error(`Login failed: ${response.statusText}`);
+          const response = await fetch(`${API_URL}/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          // First check if the response is ok
+          if (!response.ok) {
+            // Parse error response
+            const errorData = await response.json();
+            throw new Error(
+              errorData.detail?.message || errorData.detail || "Login failed"
+            );
           }
+
+          // Parse successful response
+          const data = await response.json();
+
+          // Store tokens securely
+          storeAuthTokens(data.access_token, data.refresh_token);
+
+          // Set up Supabase session with these tokens
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+          });
+
+          if (sessionError) {
+            throw new Error("Failed to set up authentication session");
+          }
+          
+          // Check MFA status after successful API login
+          const { data: aalData, error: aalError } = 
+            await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalError) throw aalError;
+
+          // Check if user has MFA factors
+          const { data: factorsData, error: factorsError } =
+            await supabase.auth.mfa.listFactors();
+          if (factorsError) throw factorsError;
+
+          const hasMFAEnrolled = factorsData.totp && factorsData.totp.length > 0;
+          const isAAL2 = aalData.currentLevel === "aal2";
+
+          // Redirect based on MFA status
+          if (!hasMFAEnrolled || !isAAL2) {
+            navigate("/mfa");
+          } else {
+            navigate("/landing");
+          }
+          
+          return;
+        } catch (apiError) {
+          console.error("API login failed:", apiError);
+          throw apiError; // Re-throw to be caught by the outer catch
         }
-      }
+      } else if (supabaseData.session) {
+        // Supabase login succeeded, store tokens
+        storeAuthTokens(supabaseData.session.access_token, supabaseData.session.refresh_token);
+        
+        // Check MFA status after successful Supabase login
+        try {
+          const { data: aalData, error: aalError } =
+            await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalError) throw aalError;
 
-      // If response is ok, safely parse the JSON
-      const data = await response.json();
+          // Check if user has MFA factors
+          const { data: factorsData, error: factorsError } =
+            await supabase.auth.mfa.listFactors();
+          if (factorsError) throw factorsError;
 
-      // Store tokens
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
+          const hasMFAEnrolled = factorsData.totp && factorsData.totp.length > 0;
+          const isAAL2 = aalData.currentLevel === "aal2";
 
-      // Set up Supabase session
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-
-      if (sessionError) {
-        throw new Error("Failed to set up authentication session");
-      }
-
-      // Check MFA status
-      const { data: aalData, error: aalError } =
-        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aalError) throw aalError;
-
-      // Check if user has MFA factors
-      const { data: factorsData, error: factorsError } =
-        await supabase.auth.mfa.listFactors();
-      if (factorsError) throw factorsError;
-
-      const hasMFAEnrolled = factorsData.totp && factorsData.totp.length > 0;
-      const isAAL2 = aalData.currentLevel === "aal2";
-
-      // Redirect based on MFA status
-      if (!hasMFAEnrolled || !isAAL2) {
-        navigate("/mfa");
+          // Redirect based on MFA status
+          if (!hasMFAEnrolled || !isAAL2) {
+            navigate("/mfa");
+          } else {
+            navigate("/landing");
+          }
+        } catch (mfaError) {
+          console.error("MFA check failed:", mfaError);
+          // If MFA check fails, just go to landing page
+          navigate("/landing");
+        }
+        
+        return;
       } else {
-        navigate("/landing");
+        throw new Error("Login succeeded but no session was created");
       }
     } catch (error) {
+      console.error("Login error:", error);
       setErrorMessage(
         error instanceof Error ? error.message : "An unexpected error occurred"
       );
