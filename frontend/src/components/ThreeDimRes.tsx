@@ -1,12 +1,15 @@
 import React, { useEffect, useRef } from "react";
 import { Niivue } from "@niivue/niivue";
-// import brainFile from "../assets/MNI152_T1_1mm_brain.nii";
+import { create, over } from "lodash";
+import { createZScoreColormap } from "@/lib/utils";
+import { API_URL } from "./constants";
 
 interface NiftiViewerProps {
   width?: number;
   height?: number;
   niftiUrl?: string;
   referenceNiftiUrl?: string; // Optional reference brain (e.g., MNI152)
+  id: string;
 }
 
 const ThreeDimRes: React.FC<NiftiViewerProps> = ({
@@ -14,9 +17,21 @@ const ThreeDimRes: React.FC<NiftiViewerProps> = ({
   height = 600,
   niftiUrl, // Using the file from public directory
   referenceNiftiUrl, // Using the same file as reference
+  id,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const niivueRef = useRef<Niivue | null>(null);
+
+  const fetchPrediction = async () => {
+    const response = await fetch(`${API_URL}/model-prediction/${id}/`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch model prediction");
+    }
+    const data = await response.json();
+    const model_result = data.model_result;
+
+    return model_result
+  }
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -43,45 +58,59 @@ const ThreeDimRes: React.FC<NiftiViewerProps> = ({
       return;
     }
 
+    const overlayMap = createZScoreColormap();
+    nv.addColormap("zscore", overlayMap);
+
     // Load volumes with proper configuration
-    const volumes = [
-      {
-        url: referenceNiftiUrl,
-        colormap: "gray", // Grayscale for reference brain
-        opacity: 0.5, // Semi-transparent
-        cal_min: 0, // Minimum intensity
-        cal_max: 100, // Maximum intensity
-      },
-      {
-        url: niftiUrl,
-        colormap: "red", // Highlight your scan in red
-        opacity: 0.8,
-        cal_min: 0,
-        cal_max: 100,
-      },
-    ];
-
-    // Load volumes and set up 3D view
-    nv.loadVolumes(volumes).then(() => {
-      // Set to 3D rendering mode
-      nv.setRenderAzimuthElevation(120, 10); // Adjust view angle
-      nv.setClipPlane([0, 0, 0, 0]); // Disable clipping for full 3D view
-      nv.setSliceType(nv.sliceTypeRender); // Set to 3D rendering mode
-
-      // Set initial volume and frame
-      if (nv.volumes.length > 0) {
-        nv.volumes[0].frame4D = 0;
+    const loadVolumes = async () => {
+      try {
+        // Add the overlay when classified as autism so we can see the visual difference
+        const volumes = [
+          {
+            url: referenceNiftiUrl,
+            colormap: "gray",
+            opacity: 0.5,
+            cal_min: 0,
+            cal_max: 100,
+          },
+        ];
+  
+        const prediction = await fetchPrediction();
+        if (prediction === 1) {
+          volumes.push({
+            url: niftiUrl,
+            colormap: "zscore",
+            opacity: 1.0,
+            cal_min: -2.0,
+            cal_max: 2.0,
+          });
+        }
+        
+        // Load volumes and set up 3D view
+        await nv.loadVolumes(volumes);
+        
+        // Set up 3D rendering mode
+        nv.setRenderAzimuthElevation(120, 10);
+        nv.setClipPlane([0, 0, 0, 0]);
+        nv.setSliceType(nv.sliceTypeRender);
+        nv.setInterpolation(false);
+        
+        // Set initial volume and frame
+        if (nv.volumes.length > 0) {
+          nv.volumes[0].frame4D = 0;
+        }
+  
+        console.log(nv.volumes);
+      } catch (err) {
+        console.error("Error loading volumes:", err);
       }
-
-      // Force a redraw
-      nv.updateGLVolume();
-    });
-
-    // Cleanup on unmount
+    };
+  
+    loadVolumes();
+  
+    // Cleanup on mount
     return () => {
-      if (niivueRef.current) {
-        niivueRef.current = null;
-      }
+      niivueRef.current = null;
     };
   }, [niftiUrl, referenceNiftiUrl]);
 

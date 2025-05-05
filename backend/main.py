@@ -3,6 +3,11 @@ import joblib
 import nilearn
 from io import BytesIO
 import gzip
+import numpy as np
+import nibabel as nib
+from scipy.ndimage import zoom
+from scipy.ndimage import gaussian_filter
+from nilearn.image import resample_to_img
 import uuid
 import os
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
@@ -17,6 +22,8 @@ from fastapi.staticfiles import StaticFiles
 import tempfile
 from typing import Optional
 from model import predict_from_nifti
+from nilearn.plotting import plot_anat, plot_stat_map
+import matplotlib.pyplot as plt
 
 load_dotenv()
 
@@ -45,6 +52,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api", tags=["authentication"])
 
 app.mount("/api/nifti_files", StaticFiles(directory="nifti_files"), name="nifti_files")
+app.mount("/api/overlay_file", StaticFiles(directory="overlay_file"), name="overlay_file")
 
 # Auth dependency
 security = HTTPBearer()
@@ -240,11 +248,49 @@ async def get_3d_fmri_file(
 
         with open(save_path, "wb") as f:
             f.write(file_bytes)
+            
+        # Resample the z-score volume to match the reference dimension space
+        reference_img = nib.load(save_path)
+        overlay_img = nib.load("overlay_file/baseline_std.nii")
+        print("Ref center (mm):", nib.affines.apply_affine(reference_img.affine, np.array(reference_img.shape) / 2))
+        print("Overlay center (mm):", nib.affines.apply_affine(overlay_img.affine, np.array(overlay_img.shape) / 2))
+        
+        if not np.allclose(reference_img.affine, overlay_img.affine):         
+            resampled_img = resample_to_img(
+                source_img=overlay_img,
+                target_img=reference_img,
+                interpolation="continuous",
+                fill_value=0,
+                force_resample=True
+            )
+            
+            print("Reference shape:", reference_img.shape)
+            print("Reference affine:\n", reference_img.affine)
 
-        # Return URL for frontend viewer (like Niivue)
+            print("Overlay shape:", resampled_img.shape)
+            print("Overlay affine:\n", resampled_img.affine)
+            
+            plot_stat_map(resampled_img, bg_img=reference_img, display_mode='ortho', threshold=1.96)
+            plt.savefig("debug_overlay.png")
+            
+            # Create a new name for this temp file
+            overlay_filename = f"{uuid.uuid4()}_resampled_overlay{suffix}"
+            overlay_path = os.path.join("nifti_files", overlay_filename)
+            print(f"Overlay file: {overlay_filename}")
+            
+            nib.save(resampled_img, overlay_path)
+
+            # Return URL for frontend viewer (like Niivue)
+            return {
+                "url": f"/nifti_files/{unique_name}",
+                "filename": unique_name,
+                "overlay": f"/nifti_files/{overlay_filename}"
+            }
+        
         return {
             "url": f"/nifti_files/{unique_name}",
-            "filename": unique_name  # for cleanup if needed
+            "filename": unique_name,
+            "overlay": "/overlay_file/patient_z_scores.nii"
         }
 
     except Exception as e:

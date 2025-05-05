@@ -44,6 +44,7 @@ const ResultsPage: React.FC = () => {
   const [sliceIndex, setSliceIndex] = useState<number>(94);
   const [fileUrl, setFileUrl] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
+  const [overlayUrl, setOverlayUrl] = useState<string>("");
   const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(94);
   const [maxSliceIndex, setMaxSliceIndex] = useState<number>(100);
   const [dataLoading, setDataLoading] = useState<boolean>(true);
@@ -96,14 +97,16 @@ const ResultsPage: React.FC = () => {
 
   const fetch3DBrainData = async () => {
     const response = await fetch(`${API_URL}/3d-fmri-file/${id}/`);
-
+    
     if (!response.ok) {
       throw new Error("Failed to fetch brain data");
     }
     const data = await response.json();
+    console.log("3D", data)
 
     setFileUrl(`${API_URL}${data.url}`);
     setFileName(data.filename)
+    setOverlayUrl(`${API_URL}${data.overlay}`);
   };
 
 
@@ -453,18 +456,15 @@ const ResultsPage: React.FC = () => {
         </div>
         <div className="bg-white rounded-b-lg shadow-md p-4 mb-8">
           <div className="flex flex-col items-center justify-center">
-            {/* <ThreeDimRes
-              width={600}
-              height={600}
-              // modelUrl={`${API_URL}/models/brain.obj`} // Update this URL to point to your actual brain model
-            /> */}
-
-            <ThreeDimRes
-              width={600}
-              height={600}
-              niftiUrl={fileUrl}
-              referenceNiftiUrl={fileUrl}
-            />
+            {typeof id === "string" && (
+              <ThreeDimRes
+                width={600}
+                height={600}
+                niftiUrl={overlayUrl}
+                referenceNiftiUrl={fileUrl}
+                id={id}
+              />
+            )}
           </div>
         </div>
 
