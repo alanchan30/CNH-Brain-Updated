@@ -14,9 +14,7 @@ import pathlib as Path
 import gzip
 
 def predict_from_nifti(file_content: bytes, original_filename: str):
-    print("File content", type(file_content))
-    
-    # Determine suffix from original filename
+     # Determine suffix from original filename
     _, ext = os.path.splitext(original_filename)
     suffix = ext if ext in ['.nii', '.gz', '.nii.gz'] else '.nii'
 

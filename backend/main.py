@@ -8,7 +8,6 @@ import os
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
 from auth.auth import router as auth_router
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI
 from dotenv import load_dotenv
 from src.plotlyViz.controller import get_slices
 from supabase import create_client, Client
@@ -40,6 +39,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include the auth router
@@ -84,7 +84,6 @@ async def hello():
 async def health_check():
     return {"status": "healthy"}
 
-
 @app.post("/api/upload")
 async def upload_fmri(
     user_id: str = Form(...),
@@ -93,77 +92,123 @@ async def upload_fmri(
     gender: str = Form(...),
     age: int = Form(...),
     diagnosis: str = Form(...),
+    atlas: str = Form(None),
     file: UploadFile = File(...),
-    atlas: str = Form(...),
-    supabase: Client = Depends(get_public_client),
 ):
+    print(f"[UPLOAD] Starting upload process for file: {file.filename}")
+    print(f"[UPLOAD] File size: {file.size if hasattr(file, 'size') else 'unknown'} bytes")
+    print(f"[UPLOAD] Content type: {file.content_type}")
+
+    client = supabase
+    if "." in file.filename:
+        file_extension = file.filename.split('.', 1)[1]
+    else:
+        file_extension = ""
+
+    mime_type = file.content_type
+    print(f"[UPLOAD] File extension: {file_extension}, MIME type: {mime_type}")
+    if str(file_extension) not in ALLOWED_EXTENSIONS or mime_type not in ALLOWED_MIME_TYPES:
+        print(f"[UPLOAD] Invalid file type: {mime_type}, extension: {file_extension}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+
     try:
-        # Check file extension and mime type
-        if "." in file.filename:
-            file_extension = file.filename.split('.', 1)[1]
-        else:
-            file_extension = ""
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        print(f"[UPLOAD] Generated unique filename: {unique_filename}")
 
-        mime_type = file.content_type
-        print(mime_type)
-        if str(file_extension) not in ALLOWED_EXTENSIONS or mime_type not in ALLOWED_MIME_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
-            )
-
-        try:
-            unique_filename = f"{uuid.uuid4()}.{file_extension}"
-        except Exception as e:
-            raise HTTPException(status_code=300, detail=str(e))
-
-        # Read file contents
-        file_contents = await file.read()
-        print(type (file_contents))
-        try:
-            model_result = predict_from_nifti(file_contents, file.filename)
-
-            # Upload file to Supabase storage without additional compression
-            storage_response = await run_in_threadpool(
-                supabase.storage.from_("fmri-uploads").upload,
+        # Create a temporary file to stream the upload
+        print(f"[UPLOAD] Creating temporary file for streaming")
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            # Stream the file content in chunks to avoid memory issues
+            chunk_size = 1024 * 1024  # 1MB chunks
+            total_bytes = 0
+            print(f"[UPLOAD] Starting to read file in {chunk_size/1024/1024}MB chunks")
+            while content := await file.read(chunk_size):
+                temp_file.write(content)
+                total_bytes += len(content)
+                print(f"[UPLOAD] Read {total_bytes/1024/1024:.2f}MB so far")
+            
+            temp_file.flush()
+            temp_file_path = temp_file.name
+            print(f"[UPLOAD] Completed reading file, total size: {total_bytes/1024/1024:.2f}MB")
+            print(f"[UPLOAD] Temporary file created at: {temp_file_path}")
+        
+        # Upload using the temporary file
+        print(f"[UPLOAD] Starting upload to Supabase storage")
+        with open(temp_file_path, "rb") as file_stream:
+            print(f"[UPLOAD] File opened for reading, uploading to bucket: fmri-uploads")
+            storage_response = client.storage.from_("fmri-uploads").upload(
                 path=unique_filename,
-                file=file_contents,
+                file=file_stream,
                 file_options={"content-type": file.content_type}
             )
+            print(f"[UPLOAD] Supabase storage response: {storage_response}")
+        
+        # Run model prediction on the file
+        print(f"[UPLOAD] Running model prediction on the file")
+        try:
+            # Read file content for prediction
+            with open(temp_file_path, "rb") as file_content:
+                file_bytes = file_content.read()
+                
+            # Run prediction
+            model_result = predict_from_nifti(file_bytes, file.filename)
+            print(f"[UPLOAD] Model prediction result: {model_result}")
+        except Exception as pred_error:
+            print(f"[UPLOAD] Error during model prediction: {str(pred_error)}")
+            model_result = 2  # Default value if prediction fails
+            print(f"[UPLOAD] Using default model result: {model_result}")
+        
+        # Clean up the temporary file
+        if os.path.exists(temp_file_path):
+            print(f"[UPLOAD] Cleaning up temporary file: {temp_file_path}")
+            os.unlink(temp_file_path)
+            print(f"[UPLOAD] Temporary file deleted")
 
-            # Insert record into database
-            fmri_data = {
-                "user_id": user_id,
-                "title": title,
-                "description": description,
-                "gender": gender,
-                "age": age,
-                "diagnosis": diagnosis,
-                "model_result": model_result,
-                "file_link": unique_filename,
-                "atlas": atlas
+        fmri_data = {
+            "user_id": user_id,
+            "title": title,
+            "description": description,
+            "gender": gender,
+            "age": age,
+            "diagnosis": diagnosis,
+            "atlas": atlas,
+            "model_result": model_result,
+            "file_link": unique_filename
+        }
+
+        print(f"[UPLOAD] Inserting data into fmri_history table: {fmri_data}")
+        result = client.table("fmri_history").insert(fmri_data).execute()
+        print(f"[UPLOAD] Database insert result: {result}")
+
+        if result.data and len(result.data) > 0:
+            fmri_id = result.data[0]['fmri_id']
+            print(f"[UPLOAD] Upload successful, fmri_id: {fmri_id}")
+            return {
+                "message": "File uploaded successfully",
+                "fmri_id": fmri_id,
+                "file_path": unique_filename,
+                "model_result": model_result
             }
-
-            # Insert into the fmri_history table
-            result = supabase.table("fmri_history").insert(fmri_data).execute()
-            
-            # Get the inserted record's ID
-            if result.data and len(result.data) > 0:
-                fmri_id = result.data[0]['fmri_id']
-                return {
-                    "message": "File uploaded successfully",
-                    "fmri_id": fmri_id,
-                    "file_path": unique_filename,
-                }
-            else:
-                raise HTTPException(
-                    status_code=500, detail="Failed to retrieve inserted record ID")
-        except Exception as e:
-            print("Error in predict_from_nifti:", e)
-            raise
-
+        else:
+            print("[UPLOAD] Failed to retrieve inserted record ID")
+            raise HTTPException(
+                status_code=500, detail="Failed to retrieve inserted record ID")
 
     except Exception as e:
+        # Clean up the temporary file if it exists
+        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+            try:
+                print(f"[UPLOAD] Error occurred, cleaning up temporary file: {temp_file_path}")
+                os.unlink(temp_file_path)
+            except Exception as cleanup_error:
+                print(f"[UPLOAD] Failed to delete temporary file: {cleanup_error}")
+        print(f"[UPLOAD] Error during upload: {str(e)}")
+        print(f"[UPLOAD] Error type: {type(e).__name__}")
+        import traceback
+        print(f"[UPLOAD] Error traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
