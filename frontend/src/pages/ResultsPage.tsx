@@ -63,16 +63,22 @@ const ResultsPage: React.FC = () => {
   }
 
   const fetchBrainData = async (index: number) => {
-    const response = await fetch(`${API_URL}/2d-fmri-data/${id}/${index}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch brain data");
-    }
-    const data = await response.json();
-    console.log("Fetched brainData:", data);
+    try {
+      setDataLoading(true);
+      const response = await fetch(`${API_URL}/2d-fmri-data/${id}/${index}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch brain data");
+      }
+      const data = await response.json();
+      console.log("Fetched brainData:", data);
 
-    setBrainData(data);
-    setDataLoading(false);
-    setMaxSliceIndex(data.max_index);
+      setBrainData(data);
+      setMaxSliceIndex(data.max_index);
+    } catch (error) {
+      console.error("Error fetching brain data:", error);
+    } finally {
+      setDataLoading(false);
+    }
   };
 
 
@@ -155,6 +161,12 @@ const ResultsPage: React.FC = () => {
     );
   };
 
+  // Update display index and immediately start loading when slider stops
+  const handleSliceChange = (newIndex: number) => {
+    setDisplaySliceIndex(newIndex);
+    setSliceIndex(newIndex);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       <Header
@@ -202,8 +214,8 @@ const ResultsPage: React.FC = () => {
                 value={displaySliceIndex}
                 className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer transition-all focus:outline-none"
                 onChange={(e) => setDisplaySliceIndex(Number(e.target.value))}
-                onMouseUp={() => setSliceIndex(displaySliceIndex)}
-                onTouchEnd={() => setSliceIndex(displaySliceIndex)}
+                onMouseUp={() => handleSliceChange(displaySliceIndex)}
+                onTouchEnd={() => handleSliceChange(displaySliceIndex)}
                 style={{
                   background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(displaySliceIndex / maxSliceIndex) * 100
                     }%, #E5E7EB ${(displaySliceIndex / maxSliceIndex) * 100
@@ -218,6 +230,7 @@ const ResultsPage: React.FC = () => {
                 }}
               >
                 {displaySliceIndex}
+                {dataLoading && <span className="ml-2 text-blue-500">(Loading...)</span>}
               </div>
             </div>
           </div>
