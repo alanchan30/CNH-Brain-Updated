@@ -94,6 +94,10 @@ async def upload_fmri(
     atlas: str = Form(None),
     file: UploadFile = File(...),
 ):
+    print(f"[UPLOAD] Starting upload process for file: {file.filename}")
+    print(f"[UPLOAD] File size: {file.size if hasattr(file, 'size') else 'unknown'} bytes")
+    print(f"[UPLOAD] Content type: {file.content_type}")
+
     client = supabase
     if "." in file.filename:
         file_extension = file.filename.split('.', 1)[1]
@@ -111,11 +115,12 @@ async def upload_fmri(
 
     try:
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
-        # result = predict_from_nifti(file_contents, file.filename)
-        # print(type(file_contents))
+        print(f"[UPLOAD] Generated unique filename: {unique_filename}")
 
         # Create a temporary file to stream the upload
+        print(f"[UPLOAD] Creating temporary file for streaming")
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            # Stream the file content in chunks to avoid memory issues
             chunk_size = 1024 * 1024  # 1MB chunks
             total_bytes = 0
             print(f"[UPLOAD] Starting to read file in {chunk_size/1024/1024}MB chunks")
@@ -127,17 +132,39 @@ async def upload_fmri(
             temp_file.flush()
             temp_file_path = temp_file.name
             print(f"[UPLOAD] Completed reading file, total size: {total_bytes/1024/1024:.2f}MB")
+            print(f"[UPLOAD] Temporary file created at: {temp_file_path}")
         
         # Upload using the temporary file
+        print(f"[UPLOAD] Starting upload to Supabase storage")
         with open(temp_file_path, "rb") as file_stream:
+            print(f"[UPLOAD] File opened for reading, uploading to bucket: fmri-uploads")
             storage_response = client.storage.from_("fmri-uploads").upload(
                 path=unique_filename,
                 file=file_stream,
                 file_options={"content-type": file.content_type}
             )
+            print(f"[UPLOAD] Supabase storage response: {storage_response}")
         
+        # Run model prediction on the file
+        print(f"[UPLOAD] Running model prediction on the file")
+        try:
+            # Read file content for prediction
+            with open(temp_file_path, "rb") as file_content:
+                file_bytes = file_content.read()
+                
+            # Run prediction
+            model_result = predict_from_nifti(file_bytes, file.filename)
+            print(f"[UPLOAD] Model prediction result: {model_result}")
+        except Exception as pred_error:
+            print(f"[UPLOAD] Error during model prediction: {str(pred_error)}")
+            model_result = 2  # Default value if prediction fails
+            print(f"[UPLOAD] Using default model result: {model_result}")
+        
+        # Clean up the temporary file
         if os.path.exists(temp_file_path):
+            print(f"[UPLOAD] Cleaning up temporary file: {temp_file_path}")
             os.unlink(temp_file_path)
+            print(f"[UPLOAD] Temporary file deleted")
 
         fmri_data = {
             "user_id": user_id,
@@ -147,7 +174,7 @@ async def upload_fmri(
             "age": age,
             "diagnosis": diagnosis,
             "atlas": atlas,
-            "model_result": 2,
+            "model_result": model_result,
             "file_link": unique_filename
         }
 
@@ -162,6 +189,7 @@ async def upload_fmri(
                 "message": "File uploaded successfully",
                 "fmri_id": fmri_id,
                 "file_path": unique_filename,
+                "model_result": model_result
             }
         else:
             print("[UPLOAD] Failed to retrieve inserted record ID")
