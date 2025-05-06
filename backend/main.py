@@ -13,6 +13,7 @@ from src.plotlyViz.controller import get_slices
 from supabase import create_client, Client
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
 import tempfile
 from typing import Optional
 from model import predict_from_nifti
@@ -226,6 +227,7 @@ async def get_2d_fmri_data(
 
     fmri_data = response.data[0]
     file_name = fmri_data["file_link"]
+    atlas_name = fmri_data.get("atlas", "Harvard-Oxford") 
     print(f"File name: {file_name}")
 
     try:
@@ -247,7 +249,7 @@ async def get_2d_fmri_data(
             print(f"Processing file: {temp_file_name}")
 
             # Process the file
-            slices = get_slices(temp_file_name, slice_index)
+            slices = get_slices(temp_file_name, slice_index, atlas_name)
             print("Slices processed successfully")
             return slices
 

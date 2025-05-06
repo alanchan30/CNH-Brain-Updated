@@ -9,6 +9,8 @@ venv
 
 nilearn_cache/
 __pycache__/
+*.py[cod]
 
-nifti_files/
+abide_data/
+
 
