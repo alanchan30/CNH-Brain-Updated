@@ -41,7 +41,7 @@ const ResultsPage: React.FC = () => {
   const [sliceIndex, setSliceIndex] = useState<number>(5);
   const [fileUrl, setFileUrl] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
-  const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(94);
+  const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(5);
   const [maxSliceIndex, setMaxSliceIndex] = useState<number>(100);
   const [dataLoading, setDataLoading] = useState<boolean>(true);
   const { id } = useParams();

@@ -9,3 +9,6 @@ venv
 
 nilearn_cache/
 __pycache__/
+
+nifti_files/
+

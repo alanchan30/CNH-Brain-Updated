@@ -9,6 +9,7 @@ import {
 import { AuthProvider, useAuth } from "./context/auth-context";
 import { useEffect } from "react";
 import { supabase } from "./components/supabaseClient";
+import { ToastContainer } from "./components/ui/toast";
 import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import MFACheck from "./pages/MFACheck";
@@ -116,60 +117,62 @@ const ProtectedRoute = ({
 
 const App = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <AuthMiddleware>
-          <Routes>
-            {/* Auth Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/mfa" element={<MFACheck />} />
+    <ToastContainer>
+      <AuthProvider>
+        <Router>
+          <AuthMiddleware>
+            <Routes>
+              {/* Auth Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/mfa" element={<MFACheck />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/landing"
-              element={
-                <ProtectedRoute>
-                  <LandingPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/upload"
-              element={
-                <ProtectedRoute>
-                  <Upload />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/history"
-              element={
-                <ProtectedRoute>
-                  <History />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/results/:id"
-              element={
-                <ProtectedRoute>
-                  <ResultsPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected Routes */}
+              <Route
+                path="/landing"
+                element={
+                  <ProtectedRoute>
+                    <LandingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/upload"
+                element={
+                  <ProtectedRoute>
+                    <Upload />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/history"
+                element={
+                  <ProtectedRoute>
+                    <History />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/results/:id"
+                element={
+                  <ProtectedRoute>
+                    <ResultsPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Redirect root to landing */}
-            <Route path="/" element={<Navigate to="/landing" replace />} />
+              {/* Redirect root to landing */}
+              <Route path="/" element={<Navigate to="/landing" replace />} />
 
-            {/* 404 Route */}
-            <Route path="/404" element={<NotFoundPage />} />
+              {/* 404 Route */}
+              <Route path="/404" element={<NotFoundPage />} />
 
-            {/* Catch all undefined routes */}
-            <Route path="*" element={<Navigate to="/404" replace />} />
-          </Routes>
-        </AuthMiddleware>
-      </Router>
-    </AuthProvider>
+              {/* Catch all undefined routes */}
+              <Route path="*" element={<Navigate to="/404" replace />} />
+            </Routes>
+          </AuthMiddleware>
+        </Router>
+      </AuthProvider>
+    </ToastContainer>
   );
 };
 
