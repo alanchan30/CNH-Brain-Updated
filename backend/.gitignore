@@ -11,4 +11,4 @@ nilearn_cache/
 __pycache__/
 *.py[cod]
 
-/abide_data/
+abide_data/
