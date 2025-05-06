@@ -41,6 +41,7 @@ export default function History() {
         if (!res.ok) throw new Error("Failed to fetch data from server");
         else {
           const json: HistoryResponse = await res.json();
+          
           console.log(json.history)
           setData(json.history);
         }

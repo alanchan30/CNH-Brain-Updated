@@ -7,10 +7,13 @@ import {
 } from "react";
 import { API_URL } from "@/components/constants";
 import { supabase } from "@/components/supabaseClient";
+import { User as SupabaseUser } from "@supabase/supabase-js";
+import { storeAuthTokens, clearAuthTokens, getStoredTokens, refreshSession, checkMFAStatus } from "@/utils/auth";
 
+// Define User type compatible with Supabase user
 interface User {
   id: string;
-  email: string;
+  email: string | undefined;
   [key: string]: any; // For additional user properties
 }
 
@@ -20,7 +23,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
   requiresMFA: boolean;
-  refreshAuthState: () => Promise<void>;
+  refreshAuthState: () => Promise<{isAuthenticated: boolean, requiresMFA: boolean} | void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,62 +38,121 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [requiresMFA, setRequiresMFA] = useState<boolean>(false);
 
+  // Function to convert Supabase user to our User type
+  const convertUser = (supabaseUser: SupabaseUser): User => {
+    const { id, email, ...rest } = supabaseUser;
+    return {
+      id,
+      email,
+      ...rest
+    };
+  };
+
   // Function to check auth state that can be reused
   const checkAuthState = async () => {
-    const token = localStorage.getItem("access_token");
+    // Don't set loading here to avoid unnecessary rerenders
+    
+    try {
+      // First try to get session from Supabase directly
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("Error getting session:", sessionError);
+        throw sessionError;
+      }
+      
+      if (session) {
+        // If we have a session already, use it
+        storeAuthTokens(session.access_token, session.refresh_token);
+        
+        // Get user from Supabase directly
+        const { data: { user: supabaseUser }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error("Error getting user:", userError);
+          throw userError;
+        }
+        
+        if (supabaseUser) {
+          setUser(convertUser(supabaseUser));
+          setIsAuthenticated(true);
+          
+          // Check MFA status using the utility function
+          try {
+            const mfaStatus = await checkMFAStatus();
+            setRequiresMFA(mfaStatus.requiresMFA);
+          } catch (mfaError) {
+            console.error("MFA check error:", mfaError);
+            // Fail gracefully on MFA errors
+            setRequiresMFA(false);
+          }
+          
+          setLoading(false);
+          return { isAuthenticated: true, requiresMFA: requiresMFA };
+        }
+      } 
+      
+      // No existing session, try to refresh
+      const { success, session: refreshedSession, user: refreshedUser, error: refreshError } = await refreshSession();
+      
+      if (success && refreshedSession && refreshedUser) {
+        setUser(convertUser(refreshedUser));
+        setIsAuthenticated(true);
+        
+        // Check MFA status for refreshed session
+        try {
+          const mfaStatus = await checkMFAStatus();
+          setRequiresMFA(mfaStatus.requiresMFA);
+        } catch (mfaError) {
+          console.error("MFA check error after refresh:", mfaError);
+          setRequiresMFA(false);
+        }
+        
+        setLoading(false);
+        return { isAuthenticated: true, requiresMFA: requiresMFA };
+      }
+      
+      // Last resort: try the API with stored tokens
+      const { accessToken } = getStoredTokens();
+      
+      if (accessToken) {
+        try {
+          const response = await fetch(`${API_URL}/me`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
 
-    if (!token) {
+          if (!response.ok) {
+            throw new Error(`Failed to authenticate: ${response.status}`);
+          }
+
+          const userData = await response.json();
+          setUser(userData.user || userData);
+          setIsAuthenticated(true);
+          setLoading(false);
+          return { isAuthenticated: true, requiresMFA: false };
+        } catch (apiError) {
+          console.error("API verification failed:", apiError);
+          clearAuthTokens();
+        }
+      }
+      
+      // If we reach here, we have no valid session
+      setUser(null);
       setIsAuthenticated(false);
       setRequiresMFA(false);
-      return;
-    }
-
-    try {
-      // First check if the token is valid
-      const response = await fetch(`${API_URL}/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to authenticate: ${response.status}`);
-      }
-
-      const userData = await response.json();
-      setUser(userData.user || userData);
-      setIsAuthenticated(true);
-
-      // Then check MFA status
-      const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aalError) throw aalError;
-
-      // Check if user has MFA factors
-      const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
-      if (factorsError) throw factorsError;
-
-      const hasMFAEnrolled = factorsData.totp && factorsData.totp.length > 0;
-      const isAAL2 = aalData.currentLevel === 'aal2';
-
-      // Require MFA if not enrolled or not at AAL2 level
-      const needsMFA = !hasMFAEnrolled || !isAAL2;
-      setRequiresMFA(needsMFA);
+      setLoading(false);
+      return { isAuthenticated: false, requiresMFA: false };
       
-      console.log('Auth state refreshed:', { 
-        isAuthenticated: true, 
-        requiresMFA: needsMFA,
-        authLevel: aalData.currentLevel
-      });
-      
-      return { isAuthenticated: true, requiresMFA: needsMFA };
-
     } catch (error) {
       console.error("Authentication check failed:", error);
       // Token is invalid or expired
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+      clearAuthTokens();
+      setUser(null);
       setIsAuthenticated(false);
       setRequiresMFA(false);
+      setLoading(false);
       
       return { isAuthenticated: false, requiresMFA: false };
     }
@@ -99,37 +161,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Public function to refresh auth state (e.g. after MFA verification)
   const refreshAuthState = async () => {
     setLoading(true);
-    try {
-      await checkAuthState();
-    } finally {
-      setLoading(false);
-    }
+    return await checkAuthState();
   };
 
   useEffect(() => {
     // Check if user is authenticated on component mount
-    const initialAuthCheck = async () => {
-      setLoading(true);
-      try {
-        await checkAuthState();
-      } finally {
+    setLoading(true);
+    checkAuthState();
+    
+    // Set up the auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        // Update localStorage with new tokens when session changes
+        storeAuthTokens(session.access_token, session.refresh_token);
+        
+        // Set auth state from session
+        setIsAuthenticated(true);
+        const user = session.user;
+        if (user) {
+          setUser(convertUser(user));
+        }
+        setLoading(false);
+      } else {
+        // On logout, clear everything
+        setUser(null);
+        setIsAuthenticated(false);
         setLoading(false);
       }
+    });
+    
+    return () => {
+      subscription.unsubscribe();
     };
-
-    initialAuthCheck();
   }, []);
 
   const signOut = async () => {
-    const token = localStorage.getItem("access_token");
+    const { accessToken } = getStoredTokens();
 
-    if (token) {
+    if (accessToken) {
       try {
         // Make sure we're using the correct endpoint
         const response = await fetch(`${API_URL}/logout`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json"
           },
         });
@@ -142,9 +217,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
-    // Clear local storage regardless of API response
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    // Clear tokens and supabase session
+    await supabase.auth.signOut();
+    clearAuthTokens();
     setUser(null);
     setIsAuthenticated(false);
 

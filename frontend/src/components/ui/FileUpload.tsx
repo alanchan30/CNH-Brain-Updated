@@ -7,11 +7,15 @@ import { UploadCloud } from 'lucide-react';
 
 type FileUploadProps = {
     onFileSelect: (file: File) => void;
+    error?: string;
 };
 
-export default function FileUpload({ onFileSelect }: FileUploadProps) {
+export default function FileUpload({ onFileSelect, error: externalError }: FileUploadProps) {
     const [files, setFiles] = useState<File[]>([]);
-    const [error, setError] = useState<string | null>(null);
+    const [internalError, setInternalError] = useState<string | null>(null);
+
+    // Determine which error to display (external error takes precedence)
+    const displayError = externalError || internalError;
 
     const isValidFile = (file: File) => {
         return file.name.endsWith('.nii') || file.name.endsWith('.nii.gz');
@@ -21,11 +25,11 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
         (acceptedFiles: File[]) => {
             if (acceptedFiles.length > 0 && isValidFile(acceptedFiles[0])) {
                 setFiles(acceptedFiles);
-                setError(null);
+                setInternalError(null);
                 onFileSelect(acceptedFiles[0]);
             } else {
                 setFiles([]);
-                setError('Only .nii and .nii.gz files are allowed.');
+                setInternalError('Only .nii and .nii.gz files are allowed.');
             }
         },
         [onFileSelect]
@@ -62,7 +66,7 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
                 >
                     {files.length === 0 ? 'Choose File' : 'Choose Other Files'}
                 </button>
-                {error && <p className="text-red-600 font-semibold">{error}</p>}
+                {displayError && <p className="text-red-600 font-semibold">{displayError}</p>}
             </CardContent>
         </Card>
     );

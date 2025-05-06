@@ -55,7 +55,9 @@ export default function Header({ redirect, showButton, page, fileName }: HeaderP
   return (
     <div className="header">
       <div className="button-row">
-        <div className="redirect" onClick={redirect}>
+        <div className="redirect" onClick={() => {
+          window.location.href = "/";
+        }}>
           <img
             className="logo"
             src={logo}

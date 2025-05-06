@@ -32,16 +32,13 @@ interface CacheItem {
   timestamp: number;
 }
 
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
-const SLICE_BATCH_SIZE = 5; // Number of slices to fetch at once
-
 const ResultsPage: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [prediction, setPrediction] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [brainData, setBrainData] = useState<BrainData | null>(null);
-  const [sliceIndex, setSliceIndex] = useState<number>(94);
+  const [sliceIndex, setSliceIndex] = useState<number>(5);
   const [fileUrl, setFileUrl] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [overlayUrl, setOverlayUrl] = useState<string>("");
@@ -67,16 +64,22 @@ const ResultsPage: React.FC = () => {
   }
 
   const fetchBrainData = async (index: number) => {
-    const response = await fetch(`${API_URL}/2d-fmri-data/${id}/${index}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch brain data");
-    }
-    const data = await response.json();
-    console.log("Fetched brainData:", data);
+    try {
+      setDataLoading(true);
+      const response = await fetch(`${API_URL}/2d-fmri-data/${id}/${index}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch brain data");
+      }
+      const data = await response.json();
+      console.log("Fetched brainData:", data);
 
-    setBrainData(data);
-    setDataLoading(false);
-    setMaxSliceIndex(data.max_index);
+      setBrainData(data);
+      setMaxSliceIndex(data.max_index);
+    } catch (error) {
+      console.error("Error fetching brain data:", error);
+    } finally {
+      setDataLoading(false);
+    }
   };
 
 
@@ -161,6 +164,12 @@ const ResultsPage: React.FC = () => {
     );
   };
 
+  // Update display index and immediately start loading when slider stops
+  const handleSliceChange = (newIndex: number) => {
+    setDisplaySliceIndex(newIndex);
+    setSliceIndex(newIndex);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       <Header
@@ -208,8 +217,8 @@ const ResultsPage: React.FC = () => {
                 value={displaySliceIndex}
                 className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer transition-all focus:outline-none"
                 onChange={(e) => setDisplaySliceIndex(Number(e.target.value))}
-                onMouseUp={() => setSliceIndex(displaySliceIndex)}
-                onTouchEnd={() => setSliceIndex(displaySliceIndex)}
+                onMouseUp={() => handleSliceChange(displaySliceIndex)}
+                onTouchEnd={() => handleSliceChange(displaySliceIndex)}
                 style={{
                   background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(displaySliceIndex / maxSliceIndex) * 100
                     }%, #E5E7EB ${(displaySliceIndex / maxSliceIndex) * 100
@@ -224,6 +233,7 @@ const ResultsPage: React.FC = () => {
                 }}
               >
                 {displaySliceIndex}
+                {dataLoading && <span className="ml-2 text-blue-500">(Loading...)</span>}
               </div>
             </div>
           </div>
