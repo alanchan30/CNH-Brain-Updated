@@ -2,7 +2,7 @@ import httpx
 import joblib
 import nilearn
 from io import BytesIO
-import gzip
+import traceback
 import numpy as np
 import nibabel as nib
 from scipy.ndimage import zoom
@@ -295,15 +295,15 @@ async def get_3d_fmri_file(
         suffix = '.nii.gz' if file_name.lower().endswith('.gz') else '.nii'
         unique_name = f"{uuid.uuid4()}{suffix}"
         save_path = os.path.join("nifti_files", unique_name)
+        
+        print(f"Saving file to: {save_path}")
 
         with open(save_path, "wb") as f:
             f.write(file_bytes)
             
         # Resample the z-score volume to match the reference dimension space
         reference_img = nib.load(save_path)
-        overlay_img = nib.load("overlay_file/baseline_std.nii")
-        print("Ref center (mm):", nib.affines.apply_affine(reference_img.affine, np.array(reference_img.shape) / 2))
-        print("Overlay center (mm):", nib.affines.apply_affine(overlay_img.affine, np.array(overlay_img.shape) / 2))
+        overlay_img = nib.load("overlay_file/patient_z_scores.nii")
         
         if not np.allclose(reference_img.affine, overlay_img.affine):         
             resampled_img = resample_to_img(
@@ -344,6 +344,7 @@ async def get_3d_fmri_file(
         }
 
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error processing fMRI data: {str(e)}")
 
 @app.delete("/api/delete-temp-files/")
