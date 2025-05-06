@@ -14,6 +14,7 @@ from src.plotlyViz.controller import get_slices
 from supabase import create_client, Client
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
 import tempfile
 from typing import Optional
 from model import predict_from_nifti
@@ -123,7 +124,8 @@ async def upload_fmri(
             model_result = predict_from_nifti(file_contents, file.filename)
 
             # Upload file to Supabase storage without additional compression
-            storage_response = supabase.storage.from_("fmri-uploads").upload(
+            storage_response = await run_in_threadpool(
+                supabase.storage.from_("fmri-uploads").upload,
                 path=unique_filename,
                 file=file_contents,
                 file_options={"content-type": file.content_type}
