@@ -38,15 +38,16 @@ const ResultsPage: React.FC = () => {
   const [prediction, setPrediction] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [brainData, setBrainData] = useState<BrainData | null>(null);
-  const [sliceIndex, setSliceIndex] = useState<number>(5);
+  const [sliceIndex, setSliceIndex] = useState<number>(50);
   const [fileUrl, setFileUrl] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [overlayUrl, setOverlayUrl] = useState<string>("");
-  const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(94);
+  const [displaySliceIndex, setDisplaySliceIndex] = useState<number>(50);
   const [maxSliceIndex, setMaxSliceIndex] = useState<number>(100);
   const [dataLoading, setDataLoading] = useState<boolean>(true);
   const { id } = useParams();
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
+  const [exportLoading, setExportLoading] = useState<boolean>(false);
 
 
   const deleteNiftiTemp = async () => {
@@ -74,10 +75,10 @@ const ResultsPage: React.FC = () => {
       console.log("Fetched brainData:", data);
 
       setBrainData(data);
-      setMaxSliceIndex(data.max_index);
+      setMaxSliceIndex(data.max_index || 100);
+      setDataLoading(false);
     } catch (error) {
       console.error("Error fetching brain data:", error);
-    } finally {
       setDataLoading(false);
     }
   };
@@ -164,10 +165,45 @@ const ResultsPage: React.FC = () => {
     );
   };
 
-  // Update display index and immediately start loading when slider stops
+  // Update slice index and immediately fetch data
   const handleSliceChange = (newIndex: number) => {
     setDisplaySliceIndex(newIndex);
     setSliceIndex(newIndex);
+    fetchBrainData(newIndex);
+  };
+
+  // Export results functionality
+  const exportResults = async () => {
+    if (!id) return;
+    
+    try {
+      setExportLoading(true);
+      const response = await fetch(`${API_URL}/export-results/${id}/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export results');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `brain-analysis-report-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      setExportLoading(false);
+    } catch (error) {
+      console.error('Error exporting results:', error);
+      setExportLoading(false);
+      alert('Failed to export results. Please try again later.');
+    }
   };
 
   return (
@@ -206,6 +242,7 @@ const ResultsPage: React.FC = () => {
               <span className="text-blue-600 font-bold">
                 {displaySliceIndex}
               </span>
+              {dataLoading && <span className="ml-2 text-blue-500">(Loading...)</span>}
             </label>
 
             <div className="relative w-full">
@@ -224,16 +261,14 @@ const ResultsPage: React.FC = () => {
                     }%, #E5E7EB ${(displaySliceIndex / maxSliceIndex) * 100
                     }%, #E5E7EB 100%)`,
                 }}
+                disabled={dataLoading}
               />
-              <div
-                className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-sm font-medium text-gray-600"
-                style={{
-                  left: `${(displaySliceIndex / maxSliceIndex) * 100}%`,
-                  transform: "translateX(-50%)",
-                }}
-              >
-                {displaySliceIndex}
-                {dataLoading && <span className="ml-2 text-blue-500">(Loading...)</span>}
+              <div className="flex justify-between text-xs text-gray-500 px-1 mt-1">
+                <span>0</span>
+                <span>{Math.floor(maxSliceIndex / 4)}</span>
+                <span>{Math.floor(maxSliceIndex / 2)}</span>
+                <span>{Math.floor(maxSliceIndex * 3 / 4)}</span>
+                <span>{maxSliceIndex}</span>
               </div>
             </div>
           </div>
@@ -489,12 +524,17 @@ const ResultsPage: React.FC = () => {
 
           <button
             className="!bg-green-600 hover:!bg-green-700 text-white px-6 py-3 rounded-lg font-medium shadow-md transition duration-200 flex items-center justify-center"
-            onClick={() => {
-              /* Handle download/export */
-              console.log("Download results");
-            }}
+            onClick={exportResults}
+            disabled={exportLoading}
           >
-            Export Results
+            {exportLoading ? (
+              <>
+                <ClipLoader color="#ffffff" size={16} className="mr-2" />
+                Exporting...
+              </>
+            ) : (
+              "Export Results"
+            )}
           </button>
         </div>
         {prediction && showModal && (

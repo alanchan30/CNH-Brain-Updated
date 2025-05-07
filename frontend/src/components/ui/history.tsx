@@ -8,18 +8,18 @@ import { API_URL } from "../constants";
 import { useNavigate } from "react-router-dom";
 
 interface HistoryItem {
-  id: number;
-  fmri_id: number,
+  fmri_id: number;
+  user_id: string;
   date: string;
+  file_link: string;
+  description: string;
+  title: string;
   gender: string;
-  age: number,
-  diagnosis: string,
-  fmri_path: string;
+  age: number;
+  diagnosis: string;
+  brain_obj: any;
   model_result: number;
-}
-
-interface HistoryResponse {
-  history: HistoryItem[];
+  atlas: string;
 }
 
 export default function History() {
@@ -30,8 +30,10 @@ export default function History() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate()
-
+  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,14 +41,22 @@ export default function History() {
       try {
         const res = await fetch(`${API_URL}/user-fmri-history/${user.id}`);
         if (!res.ok) throw new Error("Failed to fetch data from server");
-        else {
-          const json: HistoryResponse = await res.json();
-
-          console.log(json.history)
+        
+        const json = await res.json();
+        console.log("History data:", json);
+        
+        // Ensure we're setting an array to the state
+        if (Array.isArray(json)) {
+          setData(json);
+        } else if (json.history && Array.isArray(json.history)) {
           setData(json.history);
+        } else {
+          console.error("API response is not in the expected format:", json);
+          setData([]);
         }
       } catch (error) {
         console.error("Error fetching data", error);
+        setData([]);
       }
     };
     fetchData();
@@ -66,36 +76,36 @@ export default function History() {
     setIsModalOpen(false);
     setSelectedItem(null);
   };
+
+  // Filter data based on search query and sort order
   const filteredData = useMemo(() => {
-    if (sortOrder === null) return data;
+    // Ensure data is an array
+    const dataArray = Array.isArray(data) ? data : [];
+    
+    // First filter by search query
+    let filtered = dataArray;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = dataArray.filter(item => 
+        item.fmri_id.toString().includes(query) ||
+        (item.title && item.title.toLowerCase().includes(query)) ||
+        (item.diagnosis && item.diagnosis.toLowerCase().includes(query))
+      );
+    }
+    
+    // Then apply sorting
+    if (sortOrder === null) return filtered;
 
-    return [...data].sort((a, b) => {
-      const isANormal = a.fmri_path.toLowerCase() === "normal";
-      const isBNormal = b.fmri_path.toLowerCase() === "normal";
-
+    return [...filtered].sort((a, b) => {
       if (sortOrder === "asc") {
-        if (isANormal && !isBNormal) {
-          return -1
-        } else {
-          if (!isANormal && isBNormal) {
-            return 1
-          } else {
-            return 0
-          }
-        }
+        // Sort by model_result: 0 (Healthy) first
+        return a.model_result - b.model_result;
       } else {
-        if (!isANormal && isBNormal) {
-          return -1
-        } else {
-          if (isANormal && !isBNormal) {
-            return 1
-          } else {
-            return 0
-          }
-        };
+        // Sort by model_result: 1 (Unhealthy) first
+        return b.model_result - a.model_result;
       }
     });
-  }, [data, sortOrder]);
+  }, [data, searchQuery, sortOrder]);
 
   const handleClickOutside = (event: MouseEvent) => {
     if (
@@ -113,13 +123,11 @@ export default function History() {
     };
   }, []);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const [searchQuery, setSearchQuery] = useState("");
+  const currentItems = Array.isArray(filteredData) ? filteredData.slice(indexOfFirstItem, indexOfLastItem) : [];
+  const totalPages = Math.ceil((Array.isArray(filteredData) ? filteredData.length : 0) / itemsPerPage);
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -127,8 +135,17 @@ export default function History() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-  }
+    setCurrentPage(1); // Reset to first page when searching
+  };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
 
   return (
     <div className="w-full h-full bg-gray-50">
@@ -143,7 +160,7 @@ export default function History() {
               <img className="w-5 h-5 mr-2" src={Search} alt="search" />
               <input
                 className="flex-grow outline-none"
-                placeholder="Search by id..."
+                placeholder="Search by ID, title, or diagnosis..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -168,13 +185,19 @@ export default function History() {
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t-lg"
                   onClick={() => setSortOrder("asc")}
                 >
-                  Diagnosis: Normal First
+                  Prediction: Healthy First
+                </button>
+                <button
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                  onClick={() => setSortOrder("desc")}
+                >
+                  Prediction: Unhealthy First
                 </button>
                 <button
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b-lg"
-                  onClick={() => setSortOrder("desc")}
+                  onClick={() => setSortOrder(null)}
                 >
-                  Diagnosis: Not Normal First
+                  Clear Filters
                 </button>
               </div>
             )}
@@ -198,26 +221,26 @@ export default function History() {
 
         {/* Table Body */}
         <div className="divide-y divide-gray-200">
-          {filteredData.length === 0 ? (
+          {!Array.isArray(filteredData) || filteredData.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
-              No history available yet. Upload an fMRI scan to get started!
+              {searchQuery ? "No results found. Try a different search term." : "No history available yet. Upload an fMRI scan to get started!"}
             </div>
           ) : (
             currentItems.map((item) => (
-              <div key={item.id} className="grid grid-cols-12 py-4 hover:bg-gray-50">
+              <div key={item.fmri_id || Math.random()} className="grid grid-cols-12 py-4 hover:bg-gray-50">
                 <div className="col-span-1 px-2 font-medium truncate" title={String(item.fmri_id)}>{item.fmri_id}</div>
-                <div className="col-span-2 px-2 text-gray-600 truncate" title={item.date}>{item.date}</div>
-                <div className="col-span-1 px-2 text-gray-600 truncate" title={item.gender}>{item.gender}</div>
-                <div className="col-span-1 px-2 text-gray-600 truncate" title={String(item.age)}>{item.age}</div>
-                <div className="col-span-2 px-2 text-gray-600 truncate" title={item.diagnosis}>{item.diagnosis}</div>
+                <div className="col-span-2 px-2 text-gray-600 truncate" title={item.date}>{item.date ? formatDate(item.date) : 'N/A'}</div>
+                <div className="col-span-1 px-2 text-gray-600 truncate" title={item.gender || 'N/A'}>{item.gender || 'N/A'}</div>
+                <div className="col-span-1 px-2 text-gray-600 truncate" title={String(item.age || 'N/A')}>{item.age || 'N/A'}</div>
+                <div className="col-span-2 px-2 text-gray-600 truncate" title={item.diagnosis || 'N/A'}>{item.diagnosis || 'N/A'}</div>
                 <div
                   className="col-span-2 px-2 text-gray-600 truncate"
-                  title={String(item.model_result)}
+                  title={String(item.model_result !== undefined ? item.model_result : 'N/A')}
                 >
                   {Number(item.model_result) === 1
-                    ? "Unhealthy"
+                    ? "Probable to be Autistic"
                     : Number(item.model_result) === 0
-                      ? "Healthy"
+                      ? "Probable to be Neurotypical"
                       : "Prediction Failed"}
                 </div>
                 <div className="col-span-3 px-2 flex justify-center">
@@ -234,7 +257,7 @@ export default function History() {
         </div>
 
         {/* Pagination */}
-        {filteredData.length > 0 && (
+        {Array.isArray(filteredData) && filteredData.length > 0 && (
           <div className="py-4 flex justify-center bg-gray-50 border-t">
             <div className="flex space-x-2">
               <button
@@ -296,11 +319,18 @@ export default function History() {
           >
             <h3 className="text-xl font-bold mb-4">Result Details</h3>
             <div className="space-y-2">
-              <p><span className="font-medium">Name:</span> {selectedItem.fmri_id}</p>
-              <p><span className="font-medium">Date:</span> {selectedItem.date}</p>
-              <p><span className="font-medium">Result:</span>
-                <span className={selectedItem.fmri_path.toLowerCase() === "normal" ? "text-green-600" : "text-red-600"}>
-                  {selectedItem.fmri_id}
+              <p><span className="font-medium">ID:</span> {selectedItem.fmri_id}</p>
+              <p><span className="font-medium">Title:</span> {selectedItem.title}</p>
+              <p><span className="font-medium">Date:</span> {formatDate(selectedItem.date)}</p>
+              <p><span className="font-medium">Diagnosis:</span> {selectedItem.diagnosis}</p>
+              <p><span className="font-medium">Atlas:</span> {selectedItem.atlas}</p>
+              <p><span className="font-medium">Prediction:</span>
+                <span className={selectedItem.model_result === 0 ? "text-green-600" : "text-red-600"}>
+                  {selectedItem.model_result === 1
+                    ? " Probable to be Autistic"
+                    : selectedItem.model_result === 0
+                      ? " Probable to be Neurotypical"
+                      : " Prediction Failed"}
                 </span>
               </p>
             </div>

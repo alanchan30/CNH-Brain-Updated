@@ -8,7 +8,9 @@ const HistoryPage = () => {
   return (
     <div className="h-screen flex flex-col">
       <Header page="history" showButton redirect={() => navigate("/landing")} />
-      <History />
+      <div className="flex-grow overflow-auto">
+        <History />
+      </div>
     </div>
   );
 };
