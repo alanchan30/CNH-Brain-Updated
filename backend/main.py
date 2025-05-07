@@ -166,7 +166,7 @@ async def upload_fmri(
             print(f"[UPLOAD] Model prediction result: {model_result}")
         except Exception as pred_error:
             print(f"[UPLOAD] Error during model prediction: {str(pred_error)}")
-            model_result = 2  # Default value if prediction fails
+            model_result = -1  # Default value if prediction fails
             print(f"[UPLOAD] Using default model result: {model_result}")
         
         # Clean up the temporary file
