@@ -31,7 +31,7 @@ export default function History() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate()
-  
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,7 +41,7 @@ export default function History() {
         if (!res.ok) throw new Error("Failed to fetch data from server");
         else {
           const json: HistoryResponse = await res.json();
-          
+
           console.log(json.history)
           setData(json.history);
         }
@@ -68,31 +68,31 @@ export default function History() {
   };
   const filteredData = useMemo(() => {
     if (sortOrder === null) return data;
-  
+
     return [...data].sort((a, b) => {
       const isANormal = a.fmri_path.toLowerCase() === "normal";
       const isBNormal = b.fmri_path.toLowerCase() === "normal";
-  
+
       if (sortOrder === "asc") {
         if (isANormal && !isBNormal) {
           return -1
         } else {
-        if (!isANormal && isBNormal) {
-          return 1
-        } else {
-          return 0
+          if (!isANormal && isBNormal) {
+            return 1
+          } else {
+            return 0
+          }
         }
-      }
       } else {
         if (!isANormal && isBNormal) {
           return -1
         } else {
-        if (isANormal && !isBNormal) {
-          return 1
-        } else {
-          return 0
-        }
-      };
+          if (isANormal && !isBNormal) {
+            return 1
+          } else {
+            return 0
+          }
+        };
       }
     });
   }, [data, sortOrder]);
@@ -135,14 +135,14 @@ export default function History() {
       {/* Header Section */}
       <div className="w-full py-12 flex flex-col items-center justify-center">
         <h1 className="text-4xl font-bold mb-6">History</h1>
-        
+
         <div className="flex items-center space-x-4">
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="flex items-center">
             <div className="flex items-center border-2 rounded-lg px-3 py-2 bg-white w-64 md:w-80">
               <img className="w-5 h-5 mr-2" src={Search} alt="search" />
-              <input 
-                className="flex-grow outline-none" 
+              <input
+                className="flex-grow outline-none"
                 placeholder="Search by id..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -161,16 +161,16 @@ export default function History() {
             >
               <img className="w-5 h-5" src={Filter} alt="filter" />
             </button>
-            
+
             {isFilterOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white border rounded-lg shadow-lg z-10">
-                <button 
+                <button
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t-lg"
                   onClick={() => setSortOrder("asc")}
                 >
                   Diagnosis: Normal First
                 </button>
-                <button 
+                <button
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b-lg"
                   onClick={() => setSortOrder("desc")}
                 >
@@ -186,14 +186,14 @@ export default function History() {
       <div className="w-full max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
         {/* Table Header */}
         <div className="grid grid-cols-12 text-white py-3 font-medium"
-          style={{backgroundColor: '#007bff'}}>
-            <div className="col-span-1 px-2 truncate">ID</div>
-            <div className="col-span-2 px-2 truncate">Date</div>
-            <div className="col-span-1 px-2 truncate">Gender</div>
-            <div className="col-span-1 px-2 truncate">Age</div>
-            <div className="col-span-2 px-2 truncate">Diagnosis</div>
-            <div className="col-span-2 px-2 truncate">Prediction</div>
-            <div className="col-span-3 px-2 text-center">View page</div>
+          style={{ backgroundColor: '#007bff' }}>
+          <div className="col-span-1 px-2 truncate">ID</div>
+          <div className="col-span-2 px-2 truncate">Date</div>
+          <div className="col-span-1 px-2 truncate">Gender</div>
+          <div className="col-span-1 px-2 truncate">Age</div>
+          <div className="col-span-2 px-2 truncate">Diagnosis</div>
+          <div className="col-span-2 px-2 truncate">Prediction</div>
+          <div className="col-span-3 px-2 text-center">View page</div>
         </div>
 
         {/* Table Body */}
@@ -210,7 +210,16 @@ export default function History() {
                 <div className="col-span-1 px-2 text-gray-600 truncate" title={item.gender}>{item.gender}</div>
                 <div className="col-span-1 px-2 text-gray-600 truncate" title={String(item.age)}>{item.age}</div>
                 <div className="col-span-2 px-2 text-gray-600 truncate" title={item.diagnosis}>{item.diagnosis}</div>
-                <div className="col-span-2 px-2 text-gray-600 truncate" title={String(item.model_result)}>{item.model_result}</div>
+                <div
+                  className="col-span-2 px-2 text-gray-600 truncate"
+                  title={String(item.model_result)}
+                >
+                  {Number(item.model_result) === 1
+                    ? "Unhealthy"
+                    : Number(item.model_result) === 0
+                      ? "Healthy"
+                      : "Prediction Failed"}
+                </div>
                 <div className="col-span-3 px-2 flex justify-center">
                   <button
                     onClick={() => handleView(item)}
@@ -235,7 +244,7 @@ export default function History() {
               >
                 Previous
               </button>
-              
+
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                 // Show first page, last page, current page and pages around current page
                 let pageNum;
@@ -248,22 +257,21 @@ export default function History() {
                 } else {
                   pageNum = currentPage - 2 + i;
                 }
-                
+
                 return (
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-1 rounded border ${
-                      currentPage === pageNum
-                        ? "bg-blue-500 text-white"
-                        : "bg-white hover:bg-gray-100"
-                    }`}
+                    className={`px-3 py-1 rounded border ${currentPage === pageNum
+                      ? "bg-blue-500 text-white"
+                      : "bg-white hover:bg-gray-100"
+                      }`}
                   >
                     {pageNum}
                   </button>
                 );
               })}
-              
+
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -278,11 +286,11 @@ export default function History() {
 
       {/* Modal */}
       {isModalOpen && selectedItem && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={closeModal}
         >
-          <div 
+          <div
             className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -290,14 +298,14 @@ export default function History() {
             <div className="space-y-2">
               <p><span className="font-medium">Name:</span> {selectedItem.fmri_id}</p>
               <p><span className="font-medium">Date:</span> {selectedItem.date}</p>
-              <p><span className="font-medium">Result:</span> 
+              <p><span className="font-medium">Result:</span>
                 <span className={selectedItem.fmri_path.toLowerCase() === "normal" ? "text-green-600" : "text-red-600"}>
                   {selectedItem.fmri_id}
                 </span>
               </p>
             </div>
             <div className="mt-6 flex justify-end">
-              <button 
+              <button
                 onClick={closeModal}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors"
               >
