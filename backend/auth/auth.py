@@ -1,3 +1,5 @@
+# Authentication API calls, retrieves and updates information -> interacts directly with Supabase database for information
+
 # app/api/auth.py
 from fastapi import APIRouter, HTTPException, Depends, Response, Request
 from pydantic import BaseModel

@@ -1,3 +1,5 @@
+// Manages and applies MFA enrollment process and actions based on registration/verification status -> redirects to dashboard if successful
+
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient"; // Adjust the path to your supabase client
 import App from "../App"; // Adjust the path to your main App component

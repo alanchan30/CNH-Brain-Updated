@@ -1,3 +1,5 @@
+// Logic behind MFA enrollment process -> supports AppWithMFA
+
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabaseClient"; // Adjust the path to your supabase client
 import { Button } from "@/components/ui/button";

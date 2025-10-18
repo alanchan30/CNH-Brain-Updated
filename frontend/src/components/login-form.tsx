@@ -1,3 +1,5 @@
+// Username and Password login page logic -> redirects to MFA logic if successful
+
 // LoginForm.tsx - This replaces your current login form component
 import { FC, useState, FormEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";

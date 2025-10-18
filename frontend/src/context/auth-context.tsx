@@ -1,3 +1,5 @@
+// Logic behind active sessions/verification tokens for user internal access -> redirects to MFA if needs to be authenticated again
+
 import {
   createContext,
   useContext,

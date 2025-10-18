@@ -1,3 +1,5 @@
+// Logic behind actions based on MFA registration/verification status -> supports AppWithMFA
+
 import { useEffect, useState } from "react";
 import { supabase } from "../components/supabaseClient";
 import { AuthMFA, EnrollMFA } from "../components/MFA";
